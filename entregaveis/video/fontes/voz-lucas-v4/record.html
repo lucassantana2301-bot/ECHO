@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ECHO · Gravar narração</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0c0b0a; --ink-2: #161412; --bone: #ece4d6; --dim: #b8afa1; --faint: #8f877b;
+    --ember: #ff6b3d; --ember-soft: #ff906b; --moon: #a9c1d1; --line: rgba(236,228,214,.14);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--ink); color: var(--bone); font: 16px/1.55 Inter, system-ui, sans-serif; min-height: 100vh; }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; display: grid; grid-template-columns: 300px 1fr; gap: 32px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  h1 { font: 400 40px/1.05 "Instrument Serif", serif; }
+  h1 em { color: var(--ember-soft); }
+  .kicker { font: 500 12px "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: end; gap: 20px; flex-wrap: wrap; }
+  .progress { font: 500 13px "IBM Plex Mono", monospace; color: var(--dim); }
+  .progress b { color: var(--ember-soft); }
+  ol { list-style: none; padding: 0; display: grid; gap: 4px; align-content: start; }
+  ol button { width: 100%; text-align: left; display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 0; background: none; color: var(--dim); font: inherit; font-size: 14px; cursor: pointer; }
+  ol button:hover { background: rgba(236,228,214,.05); color: var(--bone); }
+  ol button[aria-current="true"] { background: rgba(255,107,61,.12); color: var(--bone); }
+  ol .n { font: 500 12px "IBM Plex Mono", monospace; color: var(--faint); min-width: 26px; }
+  ol .dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--faint); flex-shrink: 0; }
+  ol .done .dot { background: var(--moon); border-color: var(--moon); }
+  ol .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stage { border: 1px solid var(--line); border-radius: 22px; padding: 32px; background: var(--ink-2); display: grid; gap: 22px; align-content: start; }
+  .line { font: 400 clamp(28px, 3.6vw, 42px)/1.2 "Instrument Serif", serif; }
+  .ctx { color: var(--dim); font-size: 14.5px; }
+  .ctx b { color: var(--bone); font-weight: 500; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  button.btn { min-height: 48px; padding: 0 22px; border-radius: 999px; border: 1px solid rgba(236,228,214,.3); background: none; color: var(--bone); font: 500 15px Inter, sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+  button.btn:hover:not(:disabled) { border-color: var(--bone); }
+  button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  button.rec { background: var(--bone); color: var(--ink); border-color: var(--bone); }
+  button.rec:hover:not(:disabled) { background: var(--ember); border-color: var(--ember); }
+  button.rec.on { background: var(--ember); border-color: var(--ember); }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ember); }
+  button.rec .rec-dot { background: var(--ink); }
+  button.rec.on .rec-dot { animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  kbd { font: 500 11px "IBM Plex Mono", monospace; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; color: var(--dim); }
+  .meter { height: 6px; border-radius: 3px; background: rgba(236,228,214,.1); overflow: hidden; }
+  .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--moon), var(--ember)); transition: width .05s linear; }
+  .status { font: 500 13px "IBM Plex Mono", monospace; color: var(--dim); min-height: 20px; }
+  .status.ok { color: var(--moon); } .status.warn { color: var(--ember-soft); }
+  .tips { border-top: 1px solid var(--line); padding-top: 18px; color: var(--dim); font-size: 14px; display: grid; gap: 6px; }
+  .tips b { color: var(--bone); font-weight: 500; }
+  select { background: var(--ink); color: var(--bone); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 14px; max-width: 100%; }
+  audio { width: 100%; height: 40px; }
+  :focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <p class="kicker">ECHO · filme de apresentação</p>
+      <h1>Grave a narração <em>com a sua voz.</em></h1>
+    </div>
+    <p class="progress" aria-live="polite"><b id="count">0</b> de <span id="total">16</span> falas gravadas</p>
+  </header>
+
+  <nav aria-label="Falas"><ol id="list"></ol></nav>
+
+  <section class="stage" aria-labelledby="line">
+    <p class="kicker" id="pos">Fala 1 de 16</p>
+    <p class="line" id="line"></p>
+    <p class="ctx" id="ctx"></p>
+
+    <div class="row">
+      <button class="btn rec" id="rec" type="button"><span class="rec-dot" aria-hidden="true"></span><span id="recLabel">Gravar</span></button>
+      <button class="btn" id="prev" type="button">← Anterior</button>
+      <button class="btn" id="next" type="button">Próxima →</button>
+      <span class="kicker"><kbd>Espaço</kbd> grava/para · <kbd>←</kbd><kbd>→</kbd> navega</span>
+    </div>
+    <div class="meter" aria-hidden="true"><i id="meter"></i></div>
+    <p class="status" id="status" role="status"></p>
+    <audio id="player" controls hidden></audio>
+
+    <div class="row">
+      <label class="kicker" for="mic">Microfone</label>
+      <select id="mic"></select>
+    </div>
+
+    <div class="tips">
+      <p><b>Fale do seu jeito.</b> Pode soltar a frase como numa conversa; só mantenha o sentido. A montagem se ajusta ao seu ritmo.</p>
+      <p><b>Pronúncia:</b> ECHO → “éco”, Rust → “râst”, AWS → “a-dáblio-ésse” (ou como você costuma falar).</p>
+      <p><b>Silêncio:</b> espere um instante antes de falar e depois de terminar. Pode regravar quantas vezes quiser; vale a última.</p>
+      <p><b>Ambiente:</b> lugar quieto, celular longe, boca a um palmo do microfone.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const CONTEXT = {
+  L01: "Abertura: um impulso de luz atravessa o escuro.",
+  L02: "O cérebro inteiro aparece.",
+  L03: "O cérebro gira devagar.",
+  L04: "Aparece o perfil do Lucas e a trilha de estudos. É a fala mais longa; pode respirar no meio.",
+  L05: "Close nos marcos de AWS marcados como simulados.",
+  L06: "A lista dos registros originais.",
+  L07: "Os registros com data e fonte.",
+  L08: "O Diálogo: a pergunta e a resposta com evidências.",
+  L09: "Um clique abre o painel com o trecho original.",
+  L10: "A Linha do tempo com o fato aberto.",
+  L11: "O grafo neural 3D.",
+  L12: "O sinal repetido acende um caminho na rede.",
+  L13: "O mosaico se desmonta e se remonta.",
+  L14: "Os fragmentos voltam ao lugar, presos à fonte.",
+  L15: "Cartão final. Fale devagar, com peso.",
+  L16: "A assinatura final. Uma palavra só.",
+};
+let LINES = [], idx = 0, saved = new Set();
+let stream, recorder, chunks = [], analyser, raf, recording = false;
+const $ = (id) => document.getElementById(id);
+
+async function init() {
+  LINES = await (await fetch("/script.json")).json();
+  saved = new Set(await (await fetch("/saved")).json());
+  $("total").textContent = LINES.length;
+  renderList();
+  const wanted = LINES.findIndex((l) => l.id === new URLSearchParams(location.search).get("fala"));
+  show(wanted >= 0 ? wanted : Math.max(0, LINES.findIndex((l) => !saved.has(l.id))));
+  await openMic();
+  const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "audioinput");
+  $("mic").innerHTML = devices.map((d) => `<option value="${d.deviceId}">${d.label || "Microfone"}</option>`).join("");
+  $("mic").onchange = () => openMic($("mic").value);
+}
+
+async function openMic(deviceId) {
+  stream?.getTracks().forEach((t) => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: false, noiseSuppression: true, autoGainControl: false, channelCount: 1 } });
+  } catch (e) {
+    status("Não consegui acessar o microfone. Permita o acesso no navegador e recarregue a página.", "warn");
+    $("rec").disabled = true;
+    return;
+  }
+  const ctx = new AudioContext();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 1024;
+  ctx.createMediaStreamSource(stream).connect(analyser);
+  cancelAnimationFrame(raf);
+  const buf = new Float32Array(analyser.fftSize);
+  const loop = () => {
+    analyser.getFloatTimeDomainData(buf);
+    let peak = 0;
+    for (const v of buf) peak = Math.max(peak, Math.abs(v));
+    $("meter").style.width = Math.min(100, peak * 140) + "%";
+    raf = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function renderList() {
+  $("list").innerHTML = LINES.map((l, i) => `<li class="${saved.has(l.id) ? "done" : ""}"><button type="button" data-i="${i}" ${i === idx ? 'aria-current="true"' : ""}><span class="n">${String(i + 1).padStart(2, "0")}</span><span class="dot" aria-hidden="true"></span><span class="t">${l.text}</span></button></li>`).join("");
+  $("list").querySelectorAll("button").forEach((b) => (b.onclick = () => show(+b.dataset.i)));
+  $("count").textContent = saved.size;
+}
+
+function show(i) {
+  if (recording) return;
+  idx = Math.min(LINES.length - 1, Math.max(0, i));
+  const l = LINES[idx];
+  $("pos").textContent = `Fala ${idx + 1} de ${LINES.length}`;
+  $("line").textContent = l.text;
+  $("ctx").innerHTML = `<b>Na tela:</b> ${CONTEXT[l.id] ?? ""}`;
+  $("prev").disabled = idx === 0;
+  $("next").disabled = idx === LINES.length - 1;
+  const player = $("player");
+  if (saved.has(l.id)) {
+    player.src = `/take/${l.id}.wav?${Date.now()}`;
+    player.hidden = false;
+    status("Já gravada. Ouça abaixo ou grave de novo para substituir.", "ok");
+  } else {
+    player.hidden = true;
+    status("");
+  }
+  renderList();
+}
+
+function status(msg, kind = "") {
+  $("status").textContent = msg;
+  $("status").className = "status " + kind;
+}
+
+async function toggle() {
+  if ($("rec").disabled) return;
+  if (!recording) {
+    chunks = [];
+    recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 256000 });
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    recorder.onstop = save;
+    recorder.start();
+    recording = true;
+    $("rec").classList.add("on");
+    $("recLabel").textContent = "Parar";
+    status("Gravando…");
+  } else {
+    recorder.stop();
+    recording = false;
+    $("rec").classList.remove("on");
+    $("recLabel").textContent = "Gravar";
+  }
+}
+
+// Decode the take and store it as 48 kHz mono 16-bit WAV, the format the film pipeline reads.
+async function save() {
+  status("Salvando…");
+  const blob = new Blob(chunks, { type: "audio/webm" });
+  const ctx = new OfflineAudioContext(1, 48000, 48000);
+  const audio = await ctx.decodeAudioData(await blob.arrayBuffer());
+  const off = new OfflineAudioContext(1, Math.ceil(audio.duration * 48000), 48000);
+  const src = off.createBufferSource();
+  src.buffer = audio;
+  src.connect(off.destination);
+  src.start();
+  const pcm = (await off.startRendering()).getChannelData(0);
+  let peak = 0;
+  for (const v of pcm) peak = Math.max(peak, Math.abs(v));
+  const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+  const w = (o, s) => [...s].forEach((c, i) => wav.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); wav.setUint32(4, 36 + pcm.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
+  wav.setUint32(24, 48000, true); wav.setUint32(28, 96000, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true);
+  w(36, "data"); wav.setUint32(40, pcm.length * 2, true);
+  for (let i = 0; i < pcm.length; i++) wav.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 32767, true);
+  const id = LINES[idx].id;
+  const res = await fetch(`/take/${id}.wav`, { method: "POST", body: wav.buffer });
+  if (!res.ok) return status("Não consegui salvar. Tente de novo.", "warn");
+  saved.add(id);
+  const db = 20 * Math.log10(peak + 1e-9);
+  const note = db < -24 ? " · ficou baixo, chegue mais perto do microfone" : db > -1 ? " · ficou estourado, afaste um pouco" : "";
+  status(`Salva (${audio.duration.toFixed(1)} s)${note}.`, note ? "warn" : "ok");
+  renderList();
+  const player = $("player");
+  player.src = `/take/${id}.wav?${Date.now()}`;
+  player.hidden = false;
+}
+
+$("rec").onclick = toggle;
+$("prev").onclick = () => show(idx - 1);
+$("next").onclick = () => show(idx + 1);
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "SELECT" || e.target.tagName === "AUDIO") return;
+  if (e.code === "Space") { e.preventDefault(); toggle(); }
+  if (e.key === "ArrowRight") show(idx + 1);
+  if (e.key === "ArrowLeft") show(idx - 1);
+});
+init();
+</script>
+</body>
+</html>

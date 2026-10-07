@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>html, body { margin: 0; background: #000; } canvas { display: block; }</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ===================== ECHO — filme de apresentação (render offline) =====================
+// Every frame is composed from real captured frames (clips2/<shot>/NNNNN.jpg, exact 30 fps)
+// and encoded with WebCodecs; audio is rendered offline. Nothing depends on real-time playback.
+const W = 1920, H = 1080, FPS = 30;
+const END = 98.7;
+
+const NARRATION = [
+  ["L01", 1.0, "Toda lembrança começa como um sinal."],
+  ["L02", 4.6, "Com o tempo, elas se acumulam, mudam…\ne se conectam."],
+  ["L03", 10.6, "O ECHO guarda essa rede —\ne a origem de cada lembrança."],
+  ["L04", 15.4, "Lucas, um perfil de demonstração, estuda Rust e arquitetura de backend\npara construir sistemas de alto desempenho — e avança nos estudos de AWS."],
+  ["L05", 27.3, "Os marcos de AWS aparecem como simulados:\nem preparação, ainda não obtidos."],
+  ["L06", 35.1, "Cada conversa ou anotação vira um registro."],
+  ["L07", 38.8, "O ECHO extrai os fatos e mantém cada um\nligado ao texto de onde saiu."],
+  ["L08", 44.7, "Quando Lucas pergunta, a resposta vem das memórias dele,\ncom evidências numeradas."],
+  ["L09", 51.9, "Um clique mostra o trecho original."],
+  ["L10", 55.6, "Na linha do tempo, cada fato guarda dois tempos:\nquando valia e quando foi registrado."],
+  ["L11", 63.6, "No grafo, as conexões entre os fatos ficam visíveis."],
+  ["L12", 69.0, "O cérebro e o sinal são uma metáfora dessa rede:\no que se repete pode deixar traço."],
+  ["L13", 76.6, "Mas lembrar não é reproduzir.\nA cada vez, alguns fragmentos mudam de lugar."],
+  ["L14", 84.7, "O ECHO não lê pensamentos.\nEle guarda a fonte, para você conferir."],
+  ["L15", 92.7, null],
+  ["L16", 96.1, null],
+];
+
+// clip, film in/out, clip in-point, crossfade-in, camera keyframes [t, scale, focusX, focusY]
+const SHOTS = [
+  { clip: "neuron", from: 0.9, to: 6.6, at: 0.0, fade: 0.8, cam: [[0.9, 1.0, 1240, 640], [6.6, 1.12, 1240, 640]] },
+  { clip: "brain", from: 5.8, to: 15.4, at: 0.2, fade: 1.0, cam: [[5.8, 1.42, 1920, 520], [15.4, 1.26, 1920, 520]] },
+  { clip: "memories", from: 14.6, to: 44.7, at: 0.0, fade: 0.8, cam: [[14.6, 1.0, 960, 0], [25.7, 1.06, 960, 0], [27.7, 1.12, 960, 0], [33.9, 1.14, 960, 0], [35.7, 1.04, 960, 0], [44.7, 1.08, 960, 0]] },
+  { clip: "dialog", from: 43.9, to: 55.7, at: 0.0, fade: 0.8, cam: [[43.9, 1.0, 960, 540], [46.7, 1.06, 960, 1080], [50.3, 1.12, 960, 1080], [51.3, 1.0, 960, 540], [52.3, 1.0, 1660, 300], [55.7, 1.2, 1660, 300]] },
+  { clip: "timeline", from: 55.1, to: 63.7, at: 0.0, fade: 0.7, cam: [[55.1, 1.0, 960, 540], [57.1, 1.02, 1240, 640], [63.2, 1.3, 1240, 690]] },
+  { clip: "graph", from: 63.1, to: 69.3, at: 0.0, fade: 0.7, cam: [[63.1, 1.0, 960, 540], [65.3, 1.06, 900, 640], [69.3, 1.16, 820, 700]] },
+  { clip: "trace", from: 68.7, to: 76.9, at: 0.0, fade: 0.9, cam: [[68.7, 1.0, 1100, 420], [76.9, 1.14, 1100, 400]] },
+  { clip: "recall", from: 76.1, to: 83.9, at: 0.0, fade: 0.9, cam: [[76.1, 1.0, 1250, 540], [83.9, 1.08, 1250, 540]] },
+  { clip: "anchor", from: 83.1, to: 92.5, at: 0.0, fade: 0.8, cam: [[83.1, 1.0, 1250, 520], [92.5, 1.06, 1250, 560]] },
+  { clip: "brain", id: "brainEnd", from: 91.3, to: END, at: 3.0, fade: 1.4, dim: 0.42, cam: [[91.3, 1.34, 1920, 520], [END, 1.22, 1920, 520]] },
+];
+const CLIP_FRAMES = { neuron: 237, brain: 390, memories: 930, dialog: 375, timeline: 240, graph: 225, trace: 309, recall: 258, anchor: 288 };
+
+// Sound cues on visible events: signal fires, Enter, citation click, timeline/graph clicks, recalls, toggle.
+const SIGNALS = [1.5, 4.9, 68.7, 69.8, 70.9, 72.0, 73.1];
+const CLICKS = [46.92, 51.5, 56.9, 64.9, 77.3, 79.7, 84.6];
+
+const canvas = document.getElementById("c");
+const g = canvas.getContext("2d", { willReadFrequently: false });
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+// ---------- frame source ----------
+const cache = new Map();
+async function frameOf(clip, idx) {
+  const i = clamp(idx, 0, CLIP_FRAMES[clip] - 1);
+  const key = `${clip}/${i}`;
+  if (cache.has(key)) return cache.get(key);
+  const blob = await (await fetch(`clips2/${clip}/${String(i).padStart(5, "0")}.jpg`)).blob();
+  const bmp = await createImageBitmap(blob);
+  cache.set(key, bmp);
+  if (cache.size > 8) {
+    const [k, b] = cache.entries().next().value;
+    b.close();
+    cache.delete(k);
+  }
+  return bmp;
+}
+
+function camAt(shot, t) {
+  const k = shot.cam;
+  if (t <= k[0][0]) return k[0];
+  for (let i = 0; i < k.length - 1; i++) {
+    if (t <= k[i + 1][0]) {
+      const p = ease((t - k[i][0]) / (k[i + 1][0] - k[i][0]));
+      return [t, k[i][1] + (k[i + 1][1] - k[i][1]) * p, k[i][2] + (k[i + 1][2] - k[i][2]) * p, k[i][3] + (k[i + 1][3] - k[i][3]) * p];
+    }
+  }
+  return k[k.length - 1];
+}
+
+function drawShot(shot, img, t, alpha) {
+  const [, s, fx, fy] = camAt(shot, t);
+  let ox = fx - fx * s, oy = fy - fy * s;
+  ox = clamp(ox, W - W * s, 0);
+  oy = clamp(oy, H - H * s, 0);
+  g.globalAlpha = alpha;
+  g.drawImage(img, ox, oy, W * s, H * s);
+  if (shot.dim) {
+    g.fillStyle = `rgba(8,7,6,${shot.dim * alpha})`;
+    g.fillRect(0, 0, W, H);
+  }
+  g.globalAlpha = 1;
+}
+
+function drawImpulse(t) {
+  const p = clamp((t - 0.15) / 1.35, 0, 1);
+  if (p <= 0) return;
+  const e = ease(p);
+  const path = (u) => [-80 + u * (W * 0.72), H * 0.62 - Math.sin(u * Math.PI * 0.9) * 140 + u * 40];
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 46; i++) {
+    const u = e - i * 0.006;
+    if (u < 0) break;
+    const [x, y] = path(u);
+    g.fillStyle = `rgba(255,${120 + i},${70 + i},${(1 - i / 46) * 0.55})`;
+    g.beginPath(); g.arc(x, y, 3.2 * (1 - i / 60), 0, Math.PI * 2); g.fill();
+  }
+  const [hx, hy] = path(e);
+  const glow = g.createRadialGradient(hx, hy, 0, hx, hy, 90 + p * 120);
+  glow.addColorStop(0, "rgba(255,190,150,0.9)");
+  glow.addColorStop(0.15, "rgba(255,107,61,0.45)");
+  glow.addColorStop(1, "rgba(255,107,61,0)");
+  g.fillStyle = glow;
+  g.fillRect(hx - 260, hy - 260, 520, 520);
+  g.restore();
+}
+
+function drawVignette() {
+  const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.95);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,0.42)");
+  g.fillStyle = v;
+  g.fillRect(0, 0, W, H);
+}
+
+const END_IN = 92.4, MARK_IN = 95.6;
+function drawEndCard(t) {
+  const a1 = clamp((t - END_IN) / 1.3, 0, 1);
+  const a2 = clamp((t - MARK_IN) / 1.0, 0, 1);
+  if (a1 <= 0) return;
+  g.save();
+  const y = H * 0.47 + (1 - ease(a1)) * 14;
+  g.globalAlpha = ease(a1);
+  const left = "Lembrar é ";
+  g.font = "400 112px 'Instrument Serif'";
+  const wl = g.measureText(left).width;
+  g.font = "italic 400 112px 'Instrument Serif'";
+  const wr = g.measureText("reconstruir.").width;
+  const x0 = W / 2 - (wl + wr) / 2;
+  g.textAlign = "left";
+  g.textBaseline = "alphabetic";
+  g.font = "400 112px 'Instrument Serif'";
+  g.fillStyle = "#ece4d6";
+  g.fillText(left, x0, y);
+  g.font = "italic 400 112px 'Instrument Serif'";
+  g.fillStyle = "#ff906b";
+  g.fillText("reconstruir.", x0 + wl, y);
+  if (a2 > 0) {
+    g.textAlign = "center";
+    g.font = "400 58px 'Instrument Serif'";
+    g.letterSpacing = "8px";
+    const spread = 0.32 + 0.3 * ease(a2);
+    [[2, 0.1], [1, 0.28], [0, 1]].forEach(([k, op]) => {
+      g.globalAlpha = ease(a2) * op;
+      g.fillStyle = "#ece4d6";
+      g.fillText("ECHO", W / 2 + k * spread * 58, y + 128);
+    });
+    g.letterSpacing = "0px";
+  }
+  g.restore();
+}
+
+let CUES = [];
+function drawSubtitle(t) {
+  const cue = CUES.find((c) => t >= c.in && t <= c.out);
+  if (!cue) return;
+  const a = Math.min(clamp((t - cue.in) / 0.18, 0, 1), clamp((cue.out - t) / 0.22, 0, 1));
+  g.save();
+  g.globalAlpha = a;
+  g.font = "500 38px Inter";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  const lines = cue.text.split("\n");
+  const lh = 52;
+  const wMax = Math.max(...lines.map((l) => g.measureText(l).width));
+  const boxW = wMax + 64, boxH = lines.length * lh + 26;
+  const bx = W / 2 - boxW / 2, by = H - 70 - boxH;
+  g.fillStyle = "rgba(12,11,10,0.78)";
+  g.beginPath(); g.roundRect(bx, by, boxW, boxH, 16); g.fill();
+  g.fillStyle = "#f3ece0";
+  lines.forEach((l, i) => g.fillText(l, W / 2, by + 13 + lh / 2 + i * lh));
+  g.restore();
+}
+
+async function render(t) {
+  g.fillStyle = "#0a0908";
+  g.fillRect(0, 0, W, H);
+  for (const shot of SHOTS) {
+    if (t < shot.from || t > shot.to) continue;
+    const img = await frameOf(shot.clip, Math.round((t - shot.from + shot.at) * FPS));
+    drawShot(shot, img, t, ease(clamp((t - shot.from) / shot.fade, 0, 1)));
+  }
+  if (t < 2.2) {
+    g.fillStyle = `rgba(10,9,8,${1 - clamp((t - 0.9) / 1.0, 0, 1)})`;
+    g.fillRect(0, 0, W, H);
+    drawImpulse(t);
+  }
+  drawVignette();
+  drawEndCard(t);
+  drawSubtitle(t);
+  const fadeOut = clamp((t - (END - 1.4)) / 1.4, 0, 1);
+  if (fadeOut > 0) {
+    g.fillStyle = `rgba(0,0,0,${fadeOut})`;
+    g.fillRect(0, 0, W, H);
+  }
+}
+
+// ===================== audio (offline) =====================
+async function buildAudio(ctx, out, DURATIONS) {
+  const master = ctx.createGain();
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.12;
+  master.connect(limiter).connect(out);
+
+  const voice = ctx.createGain();
+  voice.gain.value = 2.0;
+  const vComp = ctx.createDynamicsCompressor();
+  vComp.threshold.value = -24; vComp.ratio.value = 3; vComp.attack.value = 0.004; vComp.release.value = 0.18; vComp.knee.value = 8;
+  const presence = ctx.createBiquadFilter();
+  presence.type = "peaking"; presence.frequency.value = 3000; presence.Q.value = 0.8; presence.gain.value = 2.5;
+  const lowcut = ctx.createBiquadFilter();
+  lowcut.type = "highpass"; lowcut.frequency.value = 85;
+  voice.connect(lowcut).connect(presence).connect(vComp).connect(master);
+
+  const music = ctx.createGain();
+  music.gain.value = 0;
+  const musicTone = ctx.createBiquadFilter();
+  musicTone.type = "lowpass"; musicTone.frequency.value = 5200;
+  music.connect(musicTone).connect(master);
+
+  const t0 = 0;
+  const speech = [];
+  for (const [id, start] of NARRATION) {
+    const buf = await ctx.decodeAudioData(await (await fetch(`vo/${id}.wav`)).arrayBuffer());
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(voice);
+    src.start(t0 + start);
+    const d = DURATIONS[id];
+    speech.push([start + d.speechIn, start + d.speechOut]);
+  }
+
+  const BASE = 0.2, DUCK = 0.085;
+  const mg = music.gain;
+  mg.setValueAtTime(0, t0);
+  mg.linearRampToValueAtTime(BASE, t0 + 2.0);
+  for (const [a, b] of speech) {
+    mg.setTargetAtTime(DUCK, t0 + a - 0.25, 0.08);
+    mg.setTargetAtTime(BASE, t0 + b + 0.15, 0.35);
+  }
+  mg.setTargetAtTime(0.26, t0 + 91.5, 0.6);
+  mg.setTargetAtTime(DUCK + 0.03, t0 + 92.6, 0.12);
+  mg.setTargetAtTime(0.22, t0 + 94.9, 0.4);
+  mg.setTargetAtTime(0.0001, t0 + END - 2.2, 0.55);
+
+  const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+  const CHORDS = [[50, 57, 62, 65, 69, 76], [46, 53, 62, 65, 69, 74], [41, 53, 60, 64, 69, 72], [48, 55, 62, 64, 67, 74]];
+  const padFilter = ctx.createBiquadFilter();
+  padFilter.type = "lowpass"; padFilter.frequency.value = 900; padFilter.Q.value = 0.6;
+  const lfo = ctx.createOscillator(); const lfoAmt = ctx.createGain();
+  lfo.frequency.value = 0.07; lfoAmt.gain.value = 380;
+  lfo.connect(lfoAmt).connect(padFilter.frequency); lfo.start(t0);
+  const padOut = ctx.createGain(); padOut.gain.value = 0.11;
+  padFilter.connect(padOut).connect(music);
+  const SEG = 12;
+  for (let c = 0; c * SEG < END + 2; c++) {
+    const chord = CHORDS[c % CHORDS.length];
+    const s = t0 + c * SEG;
+    for (const m of chord) {
+      for (const det of [-6, 0, 7]) {
+        const o = ctx.createOscillator();
+        o.type = m < 52 ? "triangle" : "sawtooth";
+        o.frequency.value = hz(m);
+        o.detune.value = det;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0, s);
+        env.gain.linearRampToValueAtTime(m < 52 ? 0.5 : 0.16, s + 3.5);
+        env.gain.setValueAtTime(m < 52 ? 0.5 : 0.16, s + SEG - 0.5);
+        env.gain.linearRampToValueAtTime(0, s + SEG + 3.5);
+        o.connect(env).connect(padFilter);
+        o.start(s); o.stop(s + SEG + 3.6);
+      }
+    }
+  }
+  const sub = ctx.createOscillator(); const subG = ctx.createGain();
+  sub.type = "sine"; sub.frequency.value = hz(38); subG.gain.value = 0.22;
+  sub.connect(subG).connect(music); sub.start(t0); sub.stop(t0 + END + 1);
+
+  const delay = ctx.createDelay(1.5); delay.delayTime.value = 0.42;
+  const fb = ctx.createGain(); fb.gain.value = 0.38;
+  const wet = ctx.createGain(); wet.gain.value = 0.5;
+  const dTone = ctx.createBiquadFilter(); dTone.type = "lowpass"; dTone.frequency.value = 2600;
+  delay.connect(dTone).connect(fb).connect(delay);
+  dTone.connect(wet).connect(master);
+  const ping = (time, freq, level, decay = 1.6) => {
+    for (const [mult, lv] of [[1, 1], [2.01, 0.25], [3.02, 0.08]]) {
+      const o = ctx.createOscillator(); const e = ctx.createGain();
+      o.type = "sine"; o.frequency.value = freq * mult;
+      e.gain.setValueAtTime(0, t0 + time);
+      e.gain.linearRampToValueAtTime(level * lv, t0 + time + 0.008);
+      e.gain.exponentialRampToValueAtTime(0.0001, t0 + time + decay);
+      o.connect(e); e.connect(master); e.connect(delay);
+      o.start(t0 + time); o.stop(t0 + time + decay + 0.1);
+    }
+  };
+  const PENTA = [587.33, 698.46, 783.99, 880, 1046.5];
+  SIGNALS.forEach((t, i) => ping(t, PENTA[i % PENTA.length], 0.07, 1.8));
+  CLICKS.forEach((t) => ping(t, 1318.5, 0.028, 0.5));
+
+  // Deterministic "noise" for the opening whoosh (seeded, so every render is identical).
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const nd = noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = rnd();
+  const ns = ctx.createBufferSource(); ns.buffer = noise;
+  const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
+  bp.frequency.setValueAtTime(300, t0 + 0.1); bp.frequency.exponentialRampToValueAtTime(2400, t0 + 1.5);
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0, t0 + 0.1); ng.gain.linearRampToValueAtTime(0.09, t0 + 1.1); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.9);
+  ns.connect(bp).connect(ng).connect(master); ns.start(t0 + 0.1); ns.stop(t0 + 2.0);
+
+  const bloom = ctx.createOscillator(); const bg = ctx.createGain();
+  bloom.type = "sine"; bloom.frequency.value = hz(38);
+  bg.gain.setValueAtTime(0, t0 + 92.1); bg.gain.linearRampToValueAtTime(0.32, t0 + 92.9); bg.gain.exponentialRampToValueAtTime(0.0001, t0 + 98.2);
+  bloom.connect(bg).connect(master); bloom.start(t0 + 92.1); bloom.stop(t0 + 98.3);
+  ping(96.0, 587.33, 0.11, 3.2);
+  ping(96.0, 880, 0.05, 3.2);
+}
+
+// ===================== MP4 muxer (ISO BMFF, faststart, no fragments) =====================
+function mux({ width, height, video, avcC, audio, asc, sampleRate, channels }) {
+  const enc = new TextEncoder();
+  const u8 = (...b) => new Uint8Array(b);
+  const u16 = (v) => u8((v >> 8) & 255, v & 255);
+  const u32 = (v) => u8((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255);
+  const cat = (parts) => {
+    const n = parts.reduce((s, p) => s + p.length, 0);
+    const out = new Uint8Array(n);
+    let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+  };
+  const box = (type, ...parts) => { const body = cat(parts); return cat([u32(body.length + 8), enc.encode(type), body]); };
+  const full = (type, version, flags, ...parts) => box(type, u8(version, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255), ...parts);
+  const zeros = (n) => new Uint8Array(n);
+  const MATRIX = cat([u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000)]);
+
+  const VTS = 30000, VDUR = 1000; // 30 fps
+  const ATS = sampleRate;
+  const vDur = video.length * VDUR;
+  const aDur = audio.reduce((s, a) => s + a.duration, 0);
+  const movieMs = Math.round(Math.max(vDur / VTS, aDur / ATS) * 1000);
+
+  // Interleave samples by time so players read both tracks sequentially.
+  const order = [];
+  let vi = 0, ai = 0, at = 0;
+  while (vi < video.length || ai < audio.length) {
+    const vt = vi < video.length ? (vi * VDUR) / VTS : Infinity;
+    const atS = ai < audio.length ? at / ATS : Infinity;
+    if (vt <= atS) order.push(["v", vi++]);
+    else { order.push(["a", ai]); at += audio[ai].duration; ai++; }
+  }
+
+  const desc = (tag, body) => cat([u8(tag, 0x80, 0x80, 0x80, body.length), body]);
+  const esds = full("esds", 0, 0, desc(3, cat([u16(2), u8(0), desc(4, cat([u8(0x40, 0x15), u8(0, 0x18, 0), u32(192000), u32(192000), desc(5, asc)])), desc(6, u8(2))])));
+  const mp4a = box("mp4a", zeros(6), u16(1), zeros(8), u16(channels), u16(16), zeros(4), u32(ATS << 16), esds);
+  const avc1 = box("avc1", zeros(6), u16(1), zeros(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), zeros(32), u16(0x0018), u16(0xffff), box("avcC", avcC));
+
+  const stts = (entries) => full("stts", 0, 0, u32(entries.length), ...entries.flatMap(([c, d]) => [u32(c), u32(d)]));
+  const runs = (durs) => {
+    const out = [];
+    for (const d of durs) { const last = out[out.length - 1]; if (last && last[1] === d) last[0]++; else out.push([1, d]); }
+    return out;
+  };
+  const stsz = (sizes) => full("stsz", 0, 0, u32(0), u32(sizes.length), ...sizes.map(u32));
+  const stsc = full("stsc", 0, 0, u32(1), u32(1), u32(1), u32(1)); // one sample per chunk
+  const stco = (offsets) => full("stco", 0, 0, u32(offsets.length), ...offsets.map(u32));
+  const keys = video.map((v, i) => (v.key ? i + 1 : 0)).filter(Boolean);
+  const dinf = box("dinf", full("dref", 0, 0, u32(1), full("url ", 0, 1)));
+  const hdlr = (type, name) => full("hdlr", 0, 0, u32(0), enc.encode(type), zeros(12), enc.encode(name + "\0"));
+  const tkhd = (id, durMs, isAudio) => full("tkhd", 0, 3, u32(0), u32(0), u32(id), u32(0), u32(durMs), zeros(8), u16(0), u16(isAudio ? 1 : 0), u16(isAudio ? 0x0100 : 0), u16(0), MATRIX, u32(isAudio ? 0 : width << 16), u32(isAudio ? 0 : height << 16));
+  const mdhd = (ts, dur) => full("mdhd", 0, 0, u32(0), u32(0), u32(ts), u32(dur), u16(0x55c4), u16(0));
+
+  const build = (vOff, aOff) => {
+    const vTrak = box("trak", tkhd(1, Math.round((vDur / VTS) * 1000), false), box("mdia", mdhd(VTS, vDur), hdlr("vide", "ECHO video"),
+      box("minf", full("vmhd", 0, 1, zeros(8)), dinf, box("stbl", full("stsd", 0, 0, u32(1), avc1), stts([[video.length, VDUR]]), full("stss", 0, 0, u32(keys.length), ...keys.map(u32)), stsc, stsz(video.map((v) => v.data.length)), stco(vOff)))));
+    const aTrak = box("trak", tkhd(2, Math.round((aDur / ATS) * 1000), true), box("mdia", mdhd(ATS, aDur), hdlr("soun", "ECHO audio"),
+      box("minf", full("smhd", 0, 0, zeros(4)), dinf, box("stbl", full("stsd", 0, 0, u32(1), mp4a), stts(runs(audio.map((a) => a.duration))), stsc, stsz(audio.map((a) => a.data.length)), stco(aOff)))));
+    const mvhd = full("mvhd", 0, 0, u32(0), u32(0), u32(1000), u32(movieMs), u32(0x00010000), u16(0x0100), zeros(10), MATRIX, zeros(24), u32(3));
+    return box("moov", mvhd, vTrak, aTrak);
+  };
+
+  const ftyp = box("ftyp", enc.encode("isom"), u32(512), enc.encode("isomiso2avc1mp41"));
+  const placeholder = build(video.map(() => 0), audio.map(() => 0));
+  let offset = ftyp.length + placeholder.length + 8;
+  const vOff = new Array(video.length), aOff = new Array(audio.length);
+  for (const [k, i] of order) {
+    const s = k === "v" ? video[i] : audio[i];
+    if (k === "v") vOff[i] = offset; else aOff[i] = offset;
+    offset += s.data.length;
+  }
+  const moov = build(vOff, aOff);
+  const mdatSize = offset - ftyp.length - moov.length;
+  const parts = [ftyp, moov, u32(mdatSize), enc.encode("mdat")];
+  for (const [k, i] of order) parts.push((k === "v" ? video[i] : audio[i]).data);
+  return new Blob(parts, { type: "video/mp4" });
+}
+
+// ===================== run =====================
+const log = (m) => { window.__log = (window.__log || []).concat(m); };
+async function main() {
+  await document.fonts.load("400 112px 'Instrument Serif'");
+  await document.fonts.load("italic 400 112px 'Instrument Serif'");
+  await document.fonts.load("500 38px Inter");
+  const DURATIONS = Object.fromEntries((await (await fetch("vo/durations.json")).json()).map((d) => [d.id, d]));
+  CUES = NARRATION.filter(([, , text]) => text).map(([id, start, text]) => ({ id, text, in: start + DURATIONS[id].speechIn - 0.1, out: start + DURATIONS[id].speechOut + 0.35 }));
+  for (let i = 0; i < CUES.length - 1; i++) CUES[i].out = Math.min(CUES[i].out, CUES[i + 1].in - 0.05);
+  window.__cues = CUES;
+
+  // ---- audio ----
+  const SR = 48000, CH = 2;
+  const off = new OfflineAudioContext(CH, Math.ceil(SR * END), SR);
+  await buildAudio(off, off.destination, DURATIONS);
+  const mixed = await off.startRendering();
+  const audioChunks = [];
+  let asc = null;
+  const aenc = new AudioEncoder({
+    output: (chunk, meta) => {
+      if (meta?.decoderConfig?.description && !asc) asc = new Uint8Array(meta.decoderConfig.description);
+      const data = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(data);
+      audioChunks.push({ data, duration: Math.round(((chunk.duration ?? 21333) * SR) / 1e6) || 1024 });
+    },
+    error: (e) => log("audio error " + e),
+  });
+  aenc.configure({ codec: "mp4a.40.2", sampleRate: SR, numberOfChannels: CH, bitrate: 192000 });
+  const L = mixed.getChannelData(0), R = mixed.getChannelData(1);
+  const BLOCK = 1024;
+  for (let i = 0; i < mixed.length; i += BLOCK) {
+    const n = Math.min(BLOCK, mixed.length - i);
+    const planar = new Float32Array(n * 2);
+    planar.set(L.subarray(i, i + n), 0);
+    planar.set(R.subarray(i, i + n), n);
+    const ad = new AudioData({ format: "f32-planar", sampleRate: SR, numberOfFrames: n, numberOfChannels: CH, timestamp: Math.round((i / SR) * 1e6), data: planar });
+    aenc.encode(ad);
+    ad.close();
+  }
+  await aenc.flush();
+  // Peak / level report of the exact mix that goes into the file.
+  let peak = 0;
+  const env = [];
+  for (let i = 0; i < mixed.length; i += SR / 2) {
+    let s = 0, n = 0;
+    for (let k = i; k < Math.min(mixed.length, i + SR / 2); k++) { const v = (L[k] + R[k]) / 2; s += v * v; n++; peak = Math.max(peak, Math.abs(L[k]), Math.abs(R[k])); }
+    env.push(+(10 * Math.log10(s / n + 1e-12)).toFixed(1));
+  }
+  window.__audio = { peakDb: +(20 * Math.log10(peak)).toFixed(2), env, chunks: audioChunks.length };
+
+  // ---- video ----
+  const videoChunks = [];
+  let avcC = null, lastTs = -1, outOfOrder = 0;
+  const venc = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta?.decoderConfig?.description && !avcC) avcC = new Uint8Array(meta.decoderConfig.description);
+      if (chunk.timestamp < lastTs) outOfOrder++;
+      lastTs = chunk.timestamp;
+      const data = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(data);
+      videoChunks.push({ data, key: chunk.type === "key" });
+    },
+    error: (e) => log("video error " + e),
+  });
+  venc.configure({ codec: "avc1.640028", width: W, height: H, bitrate: 14_000_000, framerate: FPS, avc: { format: "avc" }, latencyMode: "quality" });
+
+  // Motion probe: mean absolute difference between consecutive frames (64×36 luma).
+  const probe = new OffscreenCanvas(64, 36).getContext("2d", { willReadFrequently: true });
+  let prev = null;
+  const motion = [];
+  const total = Math.round(END * FPS);
+  for (let f = 0; f < total; f++) {
+    const t = f / FPS;
+    await render(t);
+    probe.drawImage(canvas, 0, 0, 64, 36);
+    const px = probe.getImageData(0, 0, 64, 36).data;
+    if (prev) { let d = 0; for (let i = 0; i < px.length; i += 4) d += Math.abs(px[i] - prev[i]) + Math.abs(px[i + 1] - prev[i + 1]) + Math.abs(px[i + 2] - prev[i + 2]); motion.push(+(d / (64 * 36 * 3)).toFixed(3)); }
+    prev = px;
+    const vf = new VideoFrame(canvas, { timestamp: Math.round((f * 1e6) / FPS), duration: Math.round(1e6 / FPS) });
+    venc.encode(vf, { keyFrame: f % 60 === 0 });
+    vf.close();
+    while (venc.encodeQueueSize > 6) await new Promise((r) => setTimeout(r, 1));
+    if (f % 300 === 0) log(`frame ${f}/${total}`);
+  }
+  await venc.flush();
+  window.__motion = motion;
+
+  const blob = mux({ width: W, height: H, video: videoChunks, avcC, audio: audioChunks, asc, sampleRate: SR, channels: CH });
+  const res = await fetch("/upload", { method: "POST", body: blob });
+  window.__done = { size: blob.size, frames: videoChunks.length, keyframes: videoChunks.filter((v) => v.key).length, outOfOrder, audioFrames: audioChunks.length, ascHex: [...(asc || [])].map((b) => b.toString(16).padStart(2, "0")).join(""), upload: res.status };
+}
+main().catch((e) => (window.__done = { error: String((e && e.stack) || e) }));
+</script>
+</body>
+</html>

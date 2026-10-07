@@ -1,0 +1,82 @@
+[
+ {
+  "id": "L01",
+  "text": "Toda lembrança começa como um sinal.",
+  "say": "Toda lembrança começa como um sinal."
+ },
+ {
+  "id": "L02",
+  "text": "Com o tempo, elas se acumulam, mudam… e se conectam.",
+  "say": "Com o tempo, elas se acumulam, <break time=\"150ms\"/> mudam… <break time=\"400ms\"/> e se conectam."
+ },
+ {
+  "id": "L03",
+  "text": "O ECHO guarda essa rede — e a origem de cada lembrança.",
+  "say": "O <sub alias=\"Éco\">ECHO</sub> guarda essa rede <break time=\"250ms\"/> e a origem de cada lembrança."
+ },
+ {
+  "id": "L04",
+  "text": "Lucas, um perfil de demonstração, estuda Rust e arquitetura de backend para construir sistemas de alto desempenho — e avança nos estudos de AWS.",
+  "say": "Lucas, <break time=\"100ms\"/> um perfil de demonstração, <break time=\"150ms\"/> estuda <sub alias=\"Râst\">Rust</sub> e arquitetura de backend para construir sistemas de alto desempenho <break time=\"150ms\"/> e avança nos estudos de <sub alias=\"á dáblio ésse\">AWS</sub>."
+ },
+ {
+  "id": "L05",
+  "text": "Os marcos de AWS aparecem como simulados: em preparação, ainda não obtidos.",
+  "say": "Os marcos de <sub alias=\"á dáblio ésse\">AWS</sub> aparecem como simulados: <break time=\"200ms\"/> em preparação, <break time=\"150ms\"/> ainda não obtidos."
+ },
+ {
+  "id": "L06",
+  "text": "Cada conversa ou anotação vira um registro.",
+  "say": "Cada conversa ou anotação vira um registro."
+ },
+ {
+  "id": "L07",
+  "text": "O ECHO extrai os fatos e mantém cada um ligado ao texto de onde saiu.",
+  "say": "O <sub alias=\"Éco\">ECHO</sub> extrai os fatos <break time=\"150ms\"/> e mantém cada um ligado ao texto de onde saiu."
+ },
+ {
+  "id": "L08",
+  "text": "Quando Lucas pergunta, a resposta vem das memórias dele, com evidências numeradas.",
+  "say": "Quando Lucas pergunta, <break time=\"200ms\"/> a resposta vem das memórias dele, <break time=\"150ms\"/> com evidências numeradas."
+ },
+ {
+  "id": "L09",
+  "text": "Um clique mostra o trecho original.",
+  "say": "Um clique <break time=\"100ms\"/> mostra o trecho original."
+ },
+ {
+  "id": "L10",
+  "text": "Na linha do tempo, cada fato guarda dois tempos: quando valia e quando foi registrado.",
+  "say": "Na linha do tempo, cada fato guarda dois tempos: <break time=\"250ms\"/> quando valia <break time=\"100ms\"/> e quando foi registrado."
+ },
+ {
+  "id": "L11",
+  "text": "No grafo, as conexões entre os fatos ficam visíveis.",
+  "say": "No grafo, as conexões entre os fatos ficam visíveis."
+ },
+ {
+  "id": "L12",
+  "text": "O cérebro e o sinal são uma metáfora dessa rede: o que se repete pode deixar traço.",
+  "say": "O cérebro e o sinal são uma metáfora dessa rede: <break time=\"250ms\"/> o que se repete <break time=\"100ms\"/> pode deixar traço."
+ },
+ {
+  "id": "L13",
+  "text": "Mas lembrar não é reproduzir. A cada vez, alguns fragmentos mudam de lugar.",
+  "say": "Mas lembrar não é reproduzir. <break time=\"350ms\"/> A cada vez, alguns fragmentos mudam de lugar."
+ },
+ {
+  "id": "L14",
+  "text": "O ECHO não lê pensamentos. Ele guarda a fonte, para você conferir.",
+  "say": "O <sub alias=\"Éco\">ECHO</sub> não lê pensamentos. <break time=\"350ms\"/> Ele guarda a fonte, <break time=\"100ms\"/> para você conferir."
+ },
+ {
+  "id": "L15",
+  "text": "Lembrar é reconstruir.",
+  "say": "Lembrar <break time=\"200ms\"/> é reconstruir."
+ },
+ {
+  "id": "L16",
+  "text": "ECHO.",
+  "say": "<sub alias=\"Éco\">ECHO</sub>."
+ }
+]

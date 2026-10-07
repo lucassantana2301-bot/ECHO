@@ -1,0 +1,105 @@
+﻿1
+00:00:07,330 --> 00:00:14,710
+Em 1932, o psicólogo Frederic Bartlett pediu a estudantes
+que recontassem uma lenda que eles não conheciam.
+
+2
+00:00:15,190 --> 00:00:22,730
+A cada versão, a história mudava: canoas viravam barcos,
+e o que era estranho se ajustava ao que eles já sabiam.
+
+3
+00:00:23,910 --> 00:00:31,710
+Em 1949, Donald Hebb propôs que, quando neurônios disparam juntos,
+a conexão entre eles se fortalece.
+
+4
+00:00:32,890 --> 00:00:44,010
+Em 1973, Tim Bliss e Terje Lømo observaram isso no hipocampo: estímulos
+repetidos deixaram as sinapses mais fortes por horas.
+
+5
+00:00:45,190 --> 00:00:53,850
+Em 1974, Elizabeth Loftus e John Palmer mostraram que uma única palavra
+numa pergunta muda o que as pessoas lembram.
+
+6
+00:00:54,330 --> 00:01:03,030
+Quem ouviu “esmagaram” estimou velocidades maiores — e, uma semana depois,
+mais gente lembrou de um vidro quebrado que não existia.
+
+7
+00:01:04,210 --> 00:01:12,610
+Em 2000, Karim Nader e colegas mostraram, em ratos, que uma memória,
+ao ser lembrada, volta a ficar instável — e precisa ser guardada de novo.
+
+8
+00:01:13,790 --> 00:01:18,510
+A memória não é uma gravação.
+É uma rede que se refaz a cada lembrança.
+
+9
+00:01:25,680 --> 00:01:28,150
+Toda lembrança começa como um sinal.
+
+10
+00:01:29,260 --> 00:01:32,840
+Com o tempo, elas se acumulam, mudam…
+e se conectam.
+
+11
+00:01:35,200 --> 00:01:38,940
+O ECHO guarda essa rede —
+e a origem de cada lembrança.
+
+12
+00:01:40,010 --> 00:01:50,420
+Lucas, um perfil de demonstração, estuda Rust e arquitetura de backend
+para construir sistemas de alto desempenho — e avança nos estudos de AWS.
+
+13
+00:01:51,900 --> 00:01:58,340
+Os marcos de AWS aparecem como simulados:
+em preparação, ainda não obtidos.
+
+14
+00:01:59,760 --> 00:02:02,820
+Cada conversa ou anotação vira um registro.
+
+15
+00:02:03,410 --> 00:02:08,430
+O ECHO extrai os fatos e mantém cada um
+ligado ao texto de onde saiu.
+
+16
+00:02:09,370 --> 00:02:15,400
+Quando Lucas pergunta, a resposta vem das memórias dele,
+com evidências numeradas.
+
+17
+00:02:16,510 --> 00:02:19,470
+Um clique mostra o trecho original.
+
+18
+00:02:20,210 --> 00:02:26,110
+Na linha do tempo, cada fato guarda dois tempos:
+quando valia e quando foi registrado.
+
+19
+00:02:28,210 --> 00:02:32,800
+No grafo, as conexões entre os fatos ficam visíveis.
+
+20
+00:02:33,610 --> 00:02:39,860
+O cérebro e o sinal são uma metáfora dessa rede:
+o que se repete pode deixar traço.
+
+21
+00:02:41,210 --> 00:02:46,600
+Mas lembrar não é reproduzir.
+A cada vez, alguns fragmentos mudam de lugar.
+
+22
+00:02:49,310 --> 00:02:54,160
+O ECHO não lê pensamentos.
+Ele guarda a fonte, para você conferir.

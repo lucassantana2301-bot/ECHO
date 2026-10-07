@@ -1,0 +1,664 @@
+[
+ {
+  "id": "L01",
+  "phrases": 2,
+  "pauses": [
+   {
+    "at": 2.72,
+    "gap": 0.13
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -36.3,
+   -37.3
+  ],
+  "spans": [
+   {
+    "from": 1.77,
+    "to": 2.73,
+    "level": -36.3
+   },
+   {
+    "from": 2.85,
+    "to": 4.21,
+    "level": -37.3
+   }
+  ],
+  "spreadDb": 0.9,
+  "headroomStart": 0.18,
+  "tailAfterSpeech": 0.42,
+  "fileEndAfterSpeech": 0.66
+ },
+ {
+  "id": "L02",
+  "phrases": 4,
+  "pauses": [
+   {
+    "at": 1.52,
+    "gap": 0.15
+   },
+   {
+    "at": 2.12,
+    "gap": 0.21
+   },
+   {
+    "at": 4.03,
+    "gap": 0.17
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -39,
+   -39,
+   -37.3,
+   -37.8
+  ],
+  "spans": [
+   {
+    "from": 1.2,
+    "to": 1.53,
+    "level": -39
+   },
+   {
+    "from": 1.67,
+    "to": 2.13,
+    "level": -39
+   },
+   {
+    "from": 2.33,
+    "to": 4.04,
+    "level": -37.3
+   },
+   {
+    "from": 4.2,
+    "to": 5.42,
+    "level": -37.8
+   }
+  ],
+  "spreadDb": 1.7,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.11,
+  "fileEndAfterSpeech": 0.11
+ },
+ {
+  "id": "L03",
+  "phrases": 3,
+  "pauses": [
+   {
+    "at": 1.48,
+    "gap": 0.23
+   },
+   {
+    "at": 2.72,
+    "gap": 0.35
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -38.9,
+   -38.1,
+   -38.6
+  ],
+  "spans": [
+   {
+    "from": 0.95,
+    "to": 1.49,
+    "level": -38.9
+   },
+   {
+    "from": 1.71,
+    "to": 2.73,
+    "level": -38.1
+   },
+   {
+    "from": 3.07,
+    "to": 4.66,
+    "level": -38.6
+   }
+  ],
+  "spreadDb": 0.7,
+  "headroomStart": 0.18,
+  "tailAfterSpeech": 0.42,
+  "fileEndAfterSpeech": 0.51
+ },
+ {
+  "id": "L04",
+  "phrases": 5,
+  "pauses": [
+   {
+    "at": 1.56,
+    "gap": 0.17
+   },
+   {
+    "at": 4.28,
+    "gap": 0.17
+   },
+   {
+    "at": 8.04,
+    "gap": 0.29
+   },
+   {
+    "at": 9.8,
+    "gap": 0.13
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -35.8,
+   -38.1,
+   -38,
+   -37.4,
+   -40.4
+  ],
+  "spans": [
+   {
+    "from": 1.01,
+    "to": 1.57,
+    "level": -35.8
+   },
+   {
+    "from": 1.73,
+    "to": 4.29,
+    "level": -38.1
+   },
+   {
+    "from": 4.45,
+    "to": 8.05,
+    "level": -38
+   },
+   {
+    "from": 8.33,
+    "to": 9.81,
+    "level": -37.4
+   },
+   {
+    "from": 9.93,
+    "to": 10.76,
+    "level": -40.4
+   }
+  ],
+  "spreadDb": 4.6,
+  "headroomStart": 0.36,
+  "tailAfterSpeech": 0.44,
+  "fileEndAfterSpeech": 0.59
+ },
+ {
+  "id": "L05",
+  "phrases": 4,
+  "pauses": [
+   {
+    "at": 2.66,
+    "gap": 0.24
+   },
+   {
+    "at": 4.5,
+    "gap": 0.19
+   },
+   {
+    "at": 5.77,
+    "gap": 0.44
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -34.4,
+   -35.7,
+   -33.9,
+   -35.6
+  ],
+  "spans": [
+   {
+    "from": 0.94,
+    "to": 2.67,
+    "level": -34.4
+   },
+   {
+    "from": 2.9,
+    "to": 4.51,
+    "level": -35.7
+   },
+   {
+    "from": 4.69,
+    "to": 5.78,
+    "level": -33.9
+   },
+   {
+    "from": 6.21,
+    "to": 7.49,
+    "level": -35.6
+   }
+  ],
+  "spreadDb": 1.8,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.26,
+  "fileEndAfterSpeech": 0.26
+ },
+ {
+  "id": "L06",
+  "phrases": 3,
+  "pauses": [
+   {
+    "at": 2.32,
+    "gap": 0.16
+   },
+   {
+    "at": 4.12,
+    "gap": 0.26
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -37.6,
+   -38.7
+  ],
+  "spans": [
+   {
+    "from": 1.38,
+    "to": 2.33,
+    "level": -37.6
+   },
+   {
+    "from": 2.48,
+    "to": 4.13,
+    "level": -38.7
+   },
+   {
+    "from": 4.38,
+    "to": 4.54,
+    "level": -32.6
+   }
+  ],
+  "spreadDb": 1.1,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.21,
+  "fileEndAfterSpeech": 0.21
+ },
+ {
+  "id": "L07",
+  "phrases": 4,
+  "pauses": [
+   {
+    "at": 1.56,
+    "gap": 0.21
+   },
+   {
+    "at": 4.74,
+    "gap": 0.13
+   },
+   {
+    "at": 5.28,
+    "gap": 0.14
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -37.2,
+   -37.3,
+   -39.6,
+   -37.4
+  ],
+  "spans": [
+   {
+    "from": 0.97,
+    "to": 1.57,
+    "level": -37.2
+   },
+   {
+    "from": 1.77,
+    "to": 4.75,
+    "level": -37.3
+   },
+   {
+    "from": 4.87,
+    "to": 5.29,
+    "level": -39.6
+   },
+   {
+    "from": 5.42,
+    "to": 6.2,
+    "level": -37.4
+   }
+  ],
+  "spreadDb": 2.4,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.35,
+  "fileEndAfterSpeech": 0.35
+ },
+ {
+  "id": "L08",
+  "phrases": 4,
+  "pauses": [
+   {
+    "at": 2.43,
+    "gap": 0.19
+   },
+   {
+    "at": 3.81,
+    "gap": 0.13
+   },
+   {
+    "at": 4.79,
+    "gap": 0.33
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -37.6,
+   -37.6,
+   -36.1,
+   -38.4
+  ],
+  "spans": [
+   {
+    "from": 1.18,
+    "to": 2.44,
+    "level": -37.6
+   },
+   {
+    "from": 2.62,
+    "to": 3.82,
+    "level": -37.6
+   },
+   {
+    "from": 3.94,
+    "to": 4.8,
+    "level": -36.1
+   },
+   {
+    "from": 5.12,
+    "to": 6.72,
+    "level": -38.4
+   }
+  ],
+  "spreadDb": 2.3,
+  "headroomStart": 0.22,
+  "tailAfterSpeech": 0.19,
+  "fileEndAfterSpeech": 0.19
+ },
+ {
+  "id": "L09",
+  "phrases": 2,
+  "pauses": [
+   {
+    "at": 2.85,
+    "gap": 0.23
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -37.9,
+   -36.3
+  ],
+  "spans": [
+   {
+    "from": 1.16,
+    "to": 2.86,
+    "level": -37.9
+   },
+   {
+    "from": 3.08,
+    "to": 3.64,
+    "level": -36.3
+   }
+  ],
+  "spreadDb": 1.7,
+  "headroomStart": 0.18,
+  "tailAfterSpeech": 0.21,
+  "fileEndAfterSpeech": 0.21
+ },
+ {
+  "id": "L10",
+  "phrases": 3,
+  "pauses": [
+   {
+    "at": 2.49,
+    "gap": 0.14
+   },
+   {
+    "at": 5.53,
+    "gap": 0.15
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -37.7,
+   -37.5,
+   -38.7
+  ],
+  "spans": [
+   {
+    "from": 1.48,
+    "to": 2.5,
+    "level": -37.7
+   },
+   {
+    "from": 2.63,
+    "to": 5.54,
+    "level": -37.5
+   },
+   {
+    "from": 5.68,
+    "to": 6.91,
+    "level": -38.7
+   }
+  ],
+  "spreadDb": 1.2,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.18,
+  "fileEndAfterSpeech": 0.18
+ },
+ {
+  "id": "L11",
+  "phrases": 3,
+  "pauses": [
+   {
+    "at": 1.83,
+    "gap": 0.14
+   },
+   {
+    "at": 2.83,
+    "gap": 0.13
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -36.9,
+   -37.3,
+   -38.6
+  ],
+  "spans": [
+   {
+    "from": 1.09,
+    "to": 1.84,
+    "level": -36.9
+   },
+   {
+    "from": 1.97,
+    "to": 2.84,
+    "level": -37.3
+   },
+   {
+    "from": 2.96,
+    "to": 5.22,
+    "level": -38.6
+   }
+  ],
+  "spreadDb": 1.8,
+  "headroomStart": 0.18,
+  "tailAfterSpeech": 0.13,
+  "fileEndAfterSpeech": 0.13
+ },
+ {
+  "id": "L12",
+  "phrases": 2,
+  "pauses": [
+   {
+    "at": 3.96,
+    "gap": 0.41
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -38,
+   -37.8
+  ],
+  "spans": [
+   {
+    "from": 0.87,
+    "to": 3.97,
+    "level": -38
+   },
+   {
+    "from": 4.37,
+    "to": 6.65,
+    "level": -37.8
+   }
+  ],
+  "spreadDb": 0.2,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.42,
+  "fileEndAfterSpeech": 0.56
+ },
+ {
+  "id": "L13",
+  "phrases": 2,
+  "pauses": [
+   {
+    "at": 1.9,
+    "gap": 0.13
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -35.7,
+   -35.4
+  ],
+  "spans": [
+   {
+    "from": 1.07,
+    "to": 1.91,
+    "level": -35.7
+   },
+   {
+    "from": 2.03,
+    "to": 5.99,
+    "level": -35.4
+   }
+  ],
+  "spreadDb": 0.3,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.2,
+  "fileEndAfterSpeech": 0.2
+ },
+ {
+  "id": "L14",
+  "phrases": 4,
+  "pauses": [
+   {
+    "at": 1.98,
+    "gap": 0.18
+   },
+   {
+    "at": 4.1,
+    "gap": 0.17
+   },
+   {
+    "at": 4.58,
+    "gap": 0.13
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -38.9,
+   -37.2,
+   -38,
+   -37.8
+  ],
+  "spans": [
+   {
+    "from": 1.39,
+    "to": 1.99,
+    "level": -38.9
+   },
+   {
+    "from": 2.16,
+    "to": 4.11,
+    "level": -37.2
+   },
+   {
+    "from": 4.27,
+    "to": 4.59,
+    "level": -38
+   },
+   {
+    "from": 4.71,
+    "to": 5.77,
+    "level": -37.8
+   }
+  ],
+  "spreadDb": 1.8,
+  "headroomStart": 0.18,
+  "tailAfterSpeech": 0.3,
+  "fileEndAfterSpeech": 0.3
+ },
+ {
+  "id": "L15",
+  "phrases": 2,
+  "pauses": [
+   {
+    "at": 1.86,
+    "gap": 0.24
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [
+   -38.1,
+   -37.3
+  ],
+  "spans": [
+   {
+    "from": 1.22,
+    "to": 1.87,
+    "level": -38.1
+   },
+   {
+    "from": 2.1,
+    "to": 3.14,
+    "level": -37.3
+   }
+  ],
+  "spreadDb": 0.8,
+  "headroomStart": 0.18,
+  "tailAfterSpeech": 0.42,
+  "fileEndAfterSpeech": 0.89
+ },
+ {
+  "id": "L16",
+  "phrases": 2,
+  "pauses": [
+   {
+    "at": 1.91,
+    "gap": 0.49
+   }
+  ],
+  "breaths": [],
+  "phraseLevels": [],
+  "spans": [
+   {
+    "from": 1.68,
+    "to": 1.92,
+    "level": -31
+   },
+   {
+    "from": 2.4,
+    "to": 2.62,
+    "level": -31.3
+   }
+  ],
+  "spreadDb": 0,
+  "headroomStart": 0.19,
+  "tailAfterSpeech": 0.46,
+  "fileEndAfterSpeech": 6.15
+ }
+]

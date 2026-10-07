@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; }
+  video { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ===================== ECHO — filme de apresentação =====================
+// Film time in seconds. Every shot is real footage captured from the app (clips/*.webm).
+const W = 1920, H = 1080, FPS = 30;
+const END = 96.0;
+
+const NARRATION = [
+  // id, start (s), subtitle
+  ["L01", 1.0, "Toda lembrança começa como um sinal."],
+  ["L02", 4.6, "Com o tempo, elas se acumulam, mudam…\ne se conectam."],
+  ["L03", 10.6, "O ECHO guarda essa rede —\ne a origem de cada lembrança."],
+  ["L04", 15.4, "Este é Lucas, um perfil de demonstração.\nEle estuda Rust, arquitetura de sistemas e AWS."],
+  ["L05", 24.6, "Os marcos de AWS aparecem como simulados:\nem preparação, ainda não obtidos."],
+  ["L06", 32.4, "Cada conversa ou anotação vira um registro."],
+  ["L07", 36.1, "O ECHO extrai os fatos e mantém cada um\nligado ao texto de onde saiu."],
+  ["L08", 42.0, "Quando Lucas pergunta, a resposta vem das memórias dele,\ncom evidências numeradas."],
+  ["L09", 49.2, "Um clique mostra o trecho original."],
+  ["L10", 52.9, "Na linha do tempo, cada fato guarda dois tempos:\nquando valia e quando foi registrado."],
+  ["L11", 60.9, "No grafo, as conexões entre os fatos ficam visíveis."],
+  ["L12", 66.3, "O cérebro e o sinal são uma metáfora dessa rede:\no que se repete pode deixar traço."],
+  ["L13", 73.9, "Mas lembrar não é reproduzir.\nA cada vez, alguns fragmentos mudam de lugar."],
+  ["L14", 82.0, "O ECHO não lê pensamentos.\nEle guarda a fonte, para você conferir."],
+  ["L15", 90.0, null], // the end card itself shows the words
+  ["L16", 93.4, null],
+];
+
+// Shots: clip, film in/out, clip in-point, crossfade-in, camera keyframes [t, scale, focusX, focusY].
+const SHOTS = [
+  { clip: "neuron", from: 0.9, to: 6.6, at: 0.0, fade: 0.8, cam: [[0.9, 1.0, 1240, 640], [6.6, 1.12, 1240, 640]] },
+  { clip: "brain", from: 5.8, to: 15.4, at: 0.2, fade: 1.0, cam: [[5.8, 1.42, 1920, 520], [15.4, 1.26, 1920, 520]] },
+  { clip: "memories", from: 14.6, to: 42.0, at: 0.0, fade: 0.8, cam: [[14.6, 1.0, 960, 0], [23.0, 1.06, 960, 0], [25.0, 1.12, 960, 0], [31.2, 1.14, 960, 0], [33.0, 1.04, 960, 0], [42.0, 1.08, 960, 0]] },
+  { clip: "dialog", from: 41.2, to: 53.0, at: 0.0, fade: 0.8, cam: [[41.2, 1.0, 960, 540], [44.0, 1.06, 960, 1080], [47.6, 1.12, 960, 1080], [48.6, 1.0, 960, 540], [49.6, 1.0, 1660, 420], [53.0, 1.22, 1660, 420]] },
+  { clip: "timeline", from: 52.4, to: 61.0, at: 0.0, fade: 0.7, cam: [[52.4, 1.0, 960, 540], [54.4, 1.02, 1240, 640], [60.5, 1.32, 1240, 690]] },
+  { clip: "graph", from: 60.4, to: 66.6, at: 0.0, fade: 0.7, cam: [[60.4, 1.0, 960, 540], [62.6, 1.06, 900, 640], [66.6, 1.16, 820, 700]] },
+  { clip: "trace", from: 66.0, to: 74.2, at: 0.0, fade: 0.9, cam: [[66.0, 1.0, 1100, 420], [74.2, 1.14, 1100, 400]] },
+  { clip: "recall", from: 73.4, to: 81.2, at: 0.0, fade: 0.9, cam: [[73.4, 1.0, 1250, 540], [81.2, 1.08, 1250, 540]] },
+  { clip: "anchor", from: 80.4, to: 89.8, at: 0.0, fade: 0.8, cam: [[80.4, 1.0, 1250, 520], [89.8, 1.06, 1250, 560]] },
+  { clip: "brain", id: "brainEnd", from: 88.6, to: END, at: 3.0, fade: 1.4, dim: 0.42, cam: [[88.6, 1.34, 1920, 520], [END, 1.22, 1920, 520]] },
+];
+
+// Sound cues tied to on-screen events (film time).
+const SIGNALS = [1.5, 4.9, 66.05, 67.15, 68.25, 69.35, 70.45];
+const CLICKS = [44.05, 48.6, 54.2, 62.2, 74.6, 77.0, 81.9];
+
+// ------------------------------------------------------------------
+const canvas = document.getElementById("c");
+const g = canvas.getContext("2d");
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+const videos = {};
+async function loadVideo(key, name) {
+  const v = document.createElement("video");
+  v.src = `clips/${name}.webm`;
+  v.muted = true;
+  v.preload = "auto";
+  v.playsInline = true;
+  document.body.appendChild(v);
+  await new Promise((r, j) => { v.oncanplaythrough = r; v.onerror = () => j(new Error(name)); });
+  videos[key] = v;
+}
+
+function camAt(shot, t) {
+  const k = shot.cam;
+  if (t <= k[0][0]) return k[0];
+  for (let i = 0; i < k.length - 1; i++) {
+    if (t <= k[i + 1][0]) {
+      const p = ease((t - k[i][0]) / (k[i + 1][0] - k[i][0]));
+      return [t, k[i][1] + (k[i + 1][1] - k[i][1]) * p, k[i][2] + (k[i + 1][2] - k[i][2]) * p, k[i][3] + (k[i + 1][3] - k[i][3]) * p];
+    }
+  }
+  return k[k.length - 1];
+}
+
+function drawShot(shot, t, alpha) {
+  const v = videos[shot.id || shot.clip];
+  const [, s, fx, fy] = camAt(shot, t);
+  // Keep the focus point where it is on screen, then clamp so no frame edge shows.
+  let ox = fx - fx * s, oy = fy - fy * s;
+  ox = clamp(ox, W - W * s, 0);
+  oy = clamp(oy, H - H * s, 0);
+  g.globalAlpha = alpha;
+  g.drawImage(v, ox, oy, W * s, H * s);
+  if (shot.dim) {
+    g.fillStyle = `rgba(8,7,6,${shot.dim * alpha})`;
+    g.fillRect(0, 0, W, H);
+  }
+  g.globalAlpha = 1;
+}
+
+// Opening: a single impulse crossing the dark.
+function drawImpulse(t) {
+  const p = clamp((t - 0.15) / 1.35, 0, 1);
+  if (p <= 0) return;
+  const e = ease(p);
+  const path = (u) => [-80 + u * (W * 0.72), H * 0.62 - Math.sin(u * Math.PI * 0.9) * 140 + u * 40];
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 46; i++) {
+    const u = e - i * 0.006;
+    if (u < 0) break;
+    const [x, y] = path(u);
+    const a = (1 - i / 46) * 0.55;
+    const r = 3.2 * (1 - i / 60);
+    g.fillStyle = `rgba(255,${120 + i},${70 + i},${a})`;
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  const [hx, hy] = path(e);
+  const glow = g.createRadialGradient(hx, hy, 0, hx, hy, 90 + p * 120);
+  glow.addColorStop(0, "rgba(255,190,150,0.9)");
+  glow.addColorStop(0.15, "rgba(255,107,61,0.45)");
+  glow.addColorStop(1, "rgba(255,107,61,0)");
+  g.fillStyle = glow;
+  g.fillRect(hx - 260, hy - 260, 520, 520);
+  g.restore();
+}
+
+function drawVignette() {
+  const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.95);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,0.42)");
+  g.fillStyle = v;
+  g.fillRect(0, 0, W, H);
+}
+
+function drawEndCard(t) {
+  const a1 = clamp((t - 89.7) / 1.3, 0, 1);
+  const a2 = clamp((t - 92.9) / 1.0, 0, 1);
+  if (a1 <= 0) return;
+  g.save();
+  g.textAlign = "center";
+  g.textBaseline = "alphabetic";
+  const y = H * 0.47 + (1 - ease(a1)) * 14;
+  g.globalAlpha = ease(a1);
+  g.font = "400 112px 'Instrument Serif'";
+  const left = "Lembrar é ";
+  g.font = "400 112px 'Instrument Serif'";
+  const wl = g.measureText(left).width;
+  g.font = "italic 400 112px 'Instrument Serif'";
+  const wr = g.measureText("reconstruir.").width;
+  const x0 = W / 2 - (wl + wr) / 2;
+  g.textAlign = "left";
+  g.font = "400 112px 'Instrument Serif'";
+  g.fillStyle = "#ece4d6";
+  g.fillText(left, x0, y);
+  g.font = "italic 400 112px 'Instrument Serif'";
+  g.fillStyle = "#ff906b";
+  g.fillText("reconstruir.", x0 + wl, y);
+  if (a2 > 0) {
+    // Wordmark with its two fading echoes, as in the product.
+    g.textAlign = "center";
+    g.font = "400 58px 'Instrument Serif'";
+    const wy = y + 128;
+    const spread = 0.32 + 0.3 * ease(a2);
+    [[2, 0.1], [1, 0.28], [0, 1]].forEach(([k, op]) => {
+      g.globalAlpha = ease(a2) * op;
+      g.fillStyle = "#ece4d6";
+      g.save();
+      g.letterSpacing = "8px";
+      g.fillText("ECHO", W / 2 + k * spread * 58, wy);
+      g.restore();
+    });
+  }
+  g.restore();
+}
+
+function wrapLines(text) {
+  return text.split("\n");
+}
+
+function drawSubtitle(t) {
+  const cue = CUES.find((c) => t >= c.in && t <= c.out);
+  if (!cue) return;
+  const a = Math.min(clamp((t - cue.in) / 0.18, 0, 1), clamp((cue.out - t) / 0.22, 0, 1));
+  g.save();
+  g.globalAlpha = a;
+  g.font = "500 38px Inter";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  const lines = wrapLines(cue.text);
+  const lh = 52;
+  const wMax = Math.max(...lines.map((l) => g.measureText(l).width));
+  const boxW = wMax + 64, boxH = lines.length * lh + 26;
+  const bx = W / 2 - boxW / 2, by = H - 70 - boxH;
+  g.fillStyle = "rgba(12,11,10,0.78)";
+  g.beginPath(); g.roundRect(bx, by, boxW, boxH, 16); g.fill();
+  g.fillStyle = "#f3ece0";
+  lines.forEach((l, i) => g.fillText(l, W / 2, by + 13 + lh / 2 + i * lh));
+  g.restore();
+}
+
+let CUES = [];
+
+function render(t) {
+  g.fillStyle = "#0a0908";
+  g.fillRect(0, 0, W, H);
+  for (const shot of SHOTS) {
+    if (t < shot.from || t > shot.to) continue;
+    const a = clamp((t - shot.from) / shot.fade, 0, 1);
+    drawShot(shot, t, ease(a));
+  }
+  if (t < 2.2) {
+    // Black opening, impulse, then the neuron fades in behind it.
+    g.fillStyle = `rgba(10,9,8,${1 - clamp((t - 0.9) / 1.0, 0, 1)})`;
+    g.fillRect(0, 0, W, H);
+    drawImpulse(t);
+  }
+  drawVignette();
+  drawEndCard(t);
+  drawSubtitle(t);
+  // Fade in from black and out to black.
+  const fadeOut = clamp((t - (END - 1.4)) / 1.4, 0, 1);
+  if (fadeOut > 0) {
+    g.fillStyle = `rgba(0,0,0,${fadeOut})`;
+    g.fillRect(0, 0, W, H);
+  }
+}
+
+// ===================== audio =====================
+async function buildAudio(ctx, out) {
+  const master = ctx.createGain();
+  master.gain.value = 1;
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.12;
+  master.connect(limiter).connect(out);
+
+  // Voice bus: gentle compression, presence lift, +8 dB.
+  const voice = ctx.createGain();
+  voice.gain.value = 2.0;
+  const vComp = ctx.createDynamicsCompressor();
+  vComp.threshold.value = -24; vComp.ratio.value = 3; vComp.attack.value = 0.004; vComp.release.value = 0.18; vComp.knee.value = 8;
+  const presence = ctx.createBiquadFilter();
+  presence.type = "peaking"; presence.frequency.value = 3000; presence.Q.value = 0.8; presence.gain.value = 2.5;
+  const lowcut = ctx.createBiquadFilter();
+  lowcut.type = "highpass"; lowcut.frequency.value = 85;
+  voice.connect(lowcut).connect(presence).connect(vComp).connect(master);
+
+  // Music bus with ducking under the voice.
+  const music = ctx.createGain();
+  music.gain.value = 0;
+  const musicTone = ctx.createBiquadFilter();
+  musicTone.type = "lowpass"; musicTone.frequency.value = 5200;
+  music.connect(musicTone).connect(master);
+
+  const t0 = ctx.currentTime + 0.5;
+  const speech = [];
+  for (const [id, start] of NARRATION) {
+    const buf = await ctx.decodeAudioData(await (await fetch(`vo/${id}.wav`)).arrayBuffer());
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(voice);
+    src.start(t0 + start);
+    const d = DURATIONS[id];
+    speech.push([start + d.speechIn, start + d.speechOut]);
+  }
+
+  // Music level: base, ducked while someone speaks, swell at the end.
+  const BASE = 0.2, DUCK = 0.085;
+  const mg = music.gain;
+  mg.setValueAtTime(0, t0);
+  mg.linearRampToValueAtTime(BASE, t0 + 2.0);
+  for (const [a, b] of speech) {
+    mg.setTargetAtTime(DUCK, t0 + a - 0.25, 0.08);
+    mg.setTargetAtTime(BASE, t0 + b + 0.15, 0.35);
+  }
+  mg.setTargetAtTime(0.26, t0 + 88.8, 0.6);
+  mg.setTargetAtTime(DUCK + 0.03, t0 + 89.9, 0.12);
+  mg.setTargetAtTime(0.22, t0 + 92.2, 0.4);
+  mg.setTargetAtTime(0.0001, t0 + END - 2.2, 0.55);
+
+  // Pad: slow chords in D minor (Dm9 → Bbmaj7 → Fmaj7 → C add9), 12 s each.
+  const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+  const CHORDS = [[50, 57, 62, 65, 69, 76], [46, 53, 62, 65, 69, 74], [41, 53, 60, 64, 69, 72], [48, 55, 62, 64, 67, 74]];
+  const padFilter = ctx.createBiquadFilter();
+  padFilter.type = "lowpass"; padFilter.frequency.value = 900; padFilter.Q.value = 0.6;
+  const lfo = ctx.createOscillator(); const lfoAmt = ctx.createGain();
+  lfo.frequency.value = 0.07; lfoAmt.gain.value = 380;
+  lfo.connect(lfoAmt).connect(padFilter.frequency); lfo.start(t0);
+  const padOut = ctx.createGain(); padOut.gain.value = 0.11;
+  padFilter.connect(padOut).connect(music);
+  const SEG = 12;
+  for (let c = 0; c * SEG < END + 2; c++) {
+    const chord = CHORDS[c % CHORDS.length];
+    const s = t0 + c * SEG;
+    for (const m of chord) {
+      for (const det of [-6, 0, 7]) {
+        const o = ctx.createOscillator();
+        o.type = m < 52 ? "triangle" : "sawtooth";
+        o.frequency.value = hz(m);
+        o.detune.value = det;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0, s);
+        env.gain.linearRampToValueAtTime(m < 52 ? 0.5 : 0.16, s + 3.5);
+        env.gain.setValueAtTime(m < 52 ? 0.5 : 0.16, s + SEG - 0.5);
+        env.gain.linearRampToValueAtTime(0, s + SEG + 3.5);
+        o.connect(env).connect(padFilter);
+        o.start(s); o.stop(s + SEG + 3.6);
+      }
+    }
+  }
+  // Sub drone on D.
+  const sub = ctx.createOscillator(); const subG = ctx.createGain();
+  sub.type = "sine"; sub.frequency.value = hz(38); subG.gain.value = 0.22;
+  sub.connect(subG).connect(music); sub.start(t0); sub.stop(t0 + END + 1);
+
+  // Feedback delay shared by pings: the "echo".
+  const delay = ctx.createDelay(1.5); delay.delayTime.value = 0.42;
+  const fb = ctx.createGain(); fb.gain.value = 0.38;
+  const wet = ctx.createGain(); wet.gain.value = 0.5;
+  const dTone = ctx.createBiquadFilter(); dTone.type = "lowpass"; dTone.frequency.value = 2600;
+  delay.connect(dTone).connect(fb).connect(delay);
+  dTone.connect(wet).connect(master);
+
+  const ping = (time, freq, level, decay = 1.6) => {
+    for (const [mult, lv] of [[1, 1], [2.01, 0.25], [3.02, 0.08]]) {
+      const o = ctx.createOscillator(); const e = ctx.createGain();
+      o.type = "sine"; o.frequency.value = freq * mult;
+      e.gain.setValueAtTime(0, t0 + time);
+      e.gain.linearRampToValueAtTime(level * lv, t0 + time + 0.008);
+      e.gain.exponentialRampToValueAtTime(0.0001, t0 + time + decay);
+      o.connect(e); e.connect(master); e.connect(delay);
+      o.start(t0 + time); o.stop(t0 + time + decay + 0.1);
+    }
+  };
+  const PENTA = [587.33, 698.46, 783.99, 880, 1046.5];
+  SIGNALS.forEach((t, i) => ping(t, PENTA[i % PENTA.length], 0.07, 1.8));
+  CLICKS.forEach((t) => ping(t, 1318.5, 0.028, 0.5));
+
+  // Opening whoosh: filtered noise following the impulse.
+  const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const nd = noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const ns = ctx.createBufferSource(); ns.buffer = noise;
+  const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
+  bp.frequency.setValueAtTime(300, t0 + 0.1); bp.frequency.exponentialRampToValueAtTime(2400, t0 + 1.5);
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0, t0 + 0.1); ng.gain.linearRampToValueAtTime(0.09, t0 + 1.1); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.9);
+  ns.connect(bp).connect(ng).connect(master); ns.start(t0 + 0.1); ns.stop(t0 + 2.0);
+
+  // End: a low bloom under "Lembrar é reconstruir", a bell with echo on "ECHO".
+  const bloom = ctx.createOscillator(); const bg = ctx.createGain();
+  bloom.type = "sine"; bloom.frequency.value = hz(38);
+  bg.gain.setValueAtTime(0, t0 + 89.4); bg.gain.linearRampToValueAtTime(0.32, t0 + 90.2); bg.gain.exponentialRampToValueAtTime(0.0001, t0 + 95.5);
+  bloom.connect(bg).connect(master); bloom.start(t0 + 89.4); bloom.stop(t0 + 95.6);
+  ping(93.3, 587.33, 0.11, 3.2);
+  ping(93.3, 880, 0.05, 3.2);
+
+  return t0;
+}
+
+// ===================== run =====================
+let DURATIONS = {};
+async function main() {
+  await document.fonts.load("400 112px 'Instrument Serif'");
+  await document.fonts.load("italic 400 112px 'Instrument Serif'");
+  await document.fonts.load("500 38px Inter");
+  DURATIONS = Object.fromEntries((await (await fetch("vo/durations.json")).json()).map((d) => [d.id, d]));
+  CUES = NARRATION.filter(([, , text]) => text).map(([id, start, text]) => ({
+    text,
+    in: start + DURATIONS[id].speechIn - 0.1,
+    out: start + DURATIONS[id].speechOut + 0.35,
+  }));
+  window.__cues = CUES.map((c) => ({ ...c }));
+
+  for (const shot of SHOTS) await loadVideo(shot.id || shot.clip, shot.clip);
+
+  const ctx = new AudioContext({ sampleRate: 48000 });
+  await ctx.resume();
+  const dest = ctx.createMediaStreamDestination();
+  const t0 = await buildAudio(ctx, dest);
+
+  const stream = new MediaStream([...canvas.captureStream(FPS).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  const rec = new MediaRecorder(stream, { mimeType: "video/mp4;codecs=avc1.640028,mp4a.40.2", videoBitsPerSecond: 18_000_000, audioBitsPerSecond: 192_000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+
+  const started = new Set();
+  render(0);
+  // Start recording exactly when film time 0 begins on the audio clock.
+  while (ctx.currentTime < t0 - 0.02) await new Promise((r) => setTimeout(r, 5));
+  rec.start(1000);
+  let dropped = 0, last = performance.now();
+
+  await new Promise((done) => {
+    const frame = () => {
+      const t = ctx.currentTime - t0;
+      const now = performance.now();
+      if (now - last > 50) dropped++;
+      last = now;
+      // Start each clip half a second early so decoding is warm when it appears.
+      for (const shot of SHOTS) {
+        const key = shot.id || shot.clip;
+        if (!started.has(key) && t >= shot.from - 0.5) {
+          const v = videos[key];
+          v.currentTime = Math.max(0, shot.at - (shot.from - t));
+          v.play();
+          started.add(key);
+        }
+      }
+      render(t);
+      if (t < END) requestAnimationFrame(frame);
+      else done();
+    };
+    requestAnimationFrame(frame);
+  });
+  await new Promise((r) => setTimeout(r, 300));
+  rec.stop();
+  await new Promise((r) => (rec.onstop = r));
+  const blob = new Blob(chunks, { type: "video/mp4" });
+  const res = await fetch("/upload", { method: "POST", body: blob });
+  window.__done = { size: blob.size, dropped, upload: res.status };
+}
+main().catch((e) => (window.__done = { error: String(e && e.stack || e) }));
+</script>
+</body>
+</html>

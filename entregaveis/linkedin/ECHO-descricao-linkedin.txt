@@ -1,0 +1,15 @@
+Quando você lembra de algo, sua mente não reproduz uma gravação: ela reconstrói a lembrança.
+
+A ciência mostra que esse processo pode ser influenciado pelo tempo, por novas informações e até pelas palavras que ouvimos.
+
+Essa ideia inspirou o ECHO, projeto que estou desenvolvendo: uma memória digital que conecta cada informação à conversa ou anotação de onde ela veio. Assim, você pode conferir a origem de uma resposta, em vez de apenas confiar nela.
+
+O ECHO não lê pensamentos. Ele guarda as fontes.
+
+No vídeo, “Lucas” é um perfil de demonstração. Os marcos da AWS são simulados. A narração é minha.
+
+Conheça meu trabalho: https://github.com/lucassantana2301-bot
+
+Como seria poder voltar à fonte de algo que você contou meses atrás?
+
+#InteligênciaArtificial #Memória #Neurociência #Tecnologia

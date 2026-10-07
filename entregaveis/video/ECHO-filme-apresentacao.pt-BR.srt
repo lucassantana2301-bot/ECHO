@@ -1,0 +1,73 @@
+﻿1
+00:00:01,080 --> 00:00:04,100
+Toda lembrança começa como um sinal.
+
+2
+00:00:04,660 --> 00:00:10,450
+Com o tempo, elas se acumulam, mudam…
+e se conectam.
+
+3
+00:00:10,600 --> 00:00:14,980
+O ECHO guarda essa rede —
+e a origem de cada lembrança.
+
+4
+00:00:15,410 --> 00:00:27,050
+Lucas, um perfil de demonstração, estuda Rust e arquitetura de backend
+para construir sistemas de alto desempenho — e avança nos estudos de AWS.
+
+5
+00:00:27,300 --> 00:00:34,710
+Os marcos de AWS aparecem como simulados:
+em preparação, ainda não obtidos.
+
+6
+00:00:35,150 --> 00:00:38,750
+Cada conversa ou anotação vira um registro.
+
+7
+00:00:38,800 --> 00:00:44,260
+O ECHO extrai os fatos e mantém cada um
+ligado ao texto de onde saiu.
+
+8
+00:00:44,760 --> 00:00:51,690
+Quando Lucas pergunta, a resposta vem das memórias dele,
+com evidências numeradas.
+
+9
+00:00:51,900 --> 00:00:55,060
+Um clique mostra o trecho original.
+
+10
+00:00:55,600 --> 00:01:03,100
+Na linha do tempo, cada fato guarda dois tempos:
+quando valia e quando foi registrado.
+
+11
+00:01:03,600 --> 00:01:08,320
+No grafo, as conexões entre os fatos ficam visíveis.
+
+12
+00:01:09,000 --> 00:01:16,120
+O cérebro e o sinal são uma metáfora dessa rede:
+o que se repete pode deixar traço.
+
+13
+00:01:16,600 --> 00:01:24,200
+Mas lembrar não é reproduzir.
+A cada vez, alguns fragmentos mudam de lugar.
+
+14
+00:01:24,700 --> 00:01:31,500
+O ECHO não lê pensamentos.
+Ele guarda a fonte, para você conferir.
+
+15
+00:01:32,700 --> 00:01:35,120
+Lembrar é reconstruir.
+
+16
+00:01:36,100 --> 00:01:36,880
+ECHO.

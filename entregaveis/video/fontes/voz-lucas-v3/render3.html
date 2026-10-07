@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>html, body { margin: 0; background: #000; } canvas { display: block; }</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ===================== ECHO — filme de apresentação (render offline) =====================
+// Every frame is composed from real captured frames (clips2/<shot>/NNNNN.jpg, exact 30 fps)
+// and encoded with WebCodecs; audio is rendered offline. Nothing depends on real-time playback.
+const W = 1920, H = 1080, FPS = 30;
+const END = 99.7;
+
+const NARRATION = [
+  ["L01", 1.0, "Toda lembrança começa como um sinal."],
+  ["L02", 4.6, "Com o tempo, elas se acumulam, mudam…\ne se conectam."],
+  ["L03", 10.6, "O ECHO guarda essa rede —\ne a origem de cada lembrança."],
+  ["L04", 15.4, "Lucas, um perfil de demonstração, estuda Rust e arquitetura de backend\npara construir sistemas de alto desempenho — e avança nos estudos de AWS."],
+  ["L05", 27.3, "Os marcos de AWS aparecem como simulados:\nem preparação, ainda não obtidos."],
+  ["L06", 35.1, "Cada conversa ou anotação vira um registro."],
+  ["L07", 38.8, "O ECHO extrai os fatos e mantém cada um\nligado ao texto de onde saiu."],
+  ["L08", 44.7, "Quando Lucas pergunta, a resposta vem das memórias dele,\ncom evidências numeradas."],
+  ["L09", 51.9, "Um clique mostra o trecho original."],
+  ["L10", 55.6, "Na linha do tempo, cada fato guarda dois tempos:\nquando valia e quando foi registrado."],
+  ["L11", 63.6, "No grafo, as conexões entre os fatos ficam visíveis."],
+  ["L12", 69.0, "O cérebro e o sinal são uma metáfora dessa rede:\no que se repete pode deixar traço."],
+  ["L13", 76.6, "Mas lembrar não é reproduzir.\nA cada vez, alguns fragmentos mudam de lugar."],
+  ["L14", 84.7, "O ECHO não lê pensamentos.\nEle guarda a fonte, para você conferir."],
+  ["L15", 92.7, null],
+  ["L16", 96.1, null],
+];
+
+// clip, film in/out, clip in-point, crossfade-in, camera keyframes [t, scale, focusX, focusY]
+const SHOTS = [
+  // The brain is revealed on "…e se conectam" (≈7.7 s), not mid-sentence.
+  { clip: "neuron", from: 0.9, to: 8.5, at: 0.0, fade: 0.8, cam: [[0.9, 1.0, 1240, 640], [8.5, 1.16, 1240, 640]] },
+  // Slow orbit, then a push-in toward the active region as we "enter" Lucas's memory.
+  { clip: "brain", from: 7.45, to: 15.6, at: 0.2, fade: 1.1, cam: [[7.45, 1.42, 1920, 520], [13.4, 1.3, 1920, 520], [15.6, 1.9, 1340, 380]] },
+  { clip: "memories", from: 14.5, to: 44.7, at: 0.0, fade: 1.0, cam: [[14.5, 1.06, 960, 0], [16.2, 1.0, 960, 0], [25.7, 1.06, 960, 0], [27.7, 1.12, 960, 0], [33.9, 1.14, 960, 0], [35.7, 1.04, 960, 0], [44.7, 1.08, 960, 0]] },
+  // Cut after "…de onde saiu." ends (44.15 s); in-point moved by the same amount so the content stays in sync.
+  { clip: "dialog", from: 44.2, to: 55.7, at: 0.3, fade: 0.8, cam: [[44.2, 1.0, 960, 540], [46.7, 1.06, 960, 1080], [50.3, 1.12, 960, 1080], [51.3, 1.0, 960, 540], [52.3, 1.0, 1660, 300], [55.7, 1.2, 1660, 300]] },
+  { clip: "timeline", from: 55.1, to: 63.7, at: 0.0, fade: 0.7, cam: [[55.1, 1.0, 960, 540], [57.1, 1.02, 1240, 640], [63.2, 1.3, 1240, 690]] },
+  { clip: "graph", from: 63.1, to: 69.3, at: 0.0, fade: 0.7, cam: [[63.1, 1.0, 960, 540], [65.3, 1.06, 900, 640], [69.3, 1.16, 820, 700]] },
+  { clip: "trace", from: 68.7, to: 76.9, at: 0.0, fade: 0.9, cam: [[68.7, 1.0, 1100, 420], [76.9, 1.14, 1100, 400]] },
+  { clip: "recall", from: 76.1, to: 83.9, at: 0.0, fade: 0.9, cam: [[76.1, 1.0, 1250, 540], [83.9, 1.08, 1250, 540]] },
+  { clip: "anchor", from: 83.1, to: 92.5, at: 0.0, fade: 0.8, cam: [[83.1, 1.0, 1250, 520], [92.5, 1.06, 1250, 560]] },
+  { clip: "brain", id: "brainEnd", from: 91.3, to: END, at: 3.0, fade: 1.4, dim: 0.42, cam: [[91.3, 1.34, 1920, 520], [END, 1.22, 1920, 520]] },
+];
+const CLIP_FRAMES = { neuron: 237, brain: 390, memories: 930, dialog: 375, timeline: 240, graph: 225, trace: 309, recall: 258, anchor: 288 };
+
+// Sound cues on visible events: signal fires, Enter, citation click, timeline/graph clicks, recalls, toggle.
+const SIGNALS = [1.5, 4.9, 68.7, 69.8, 70.9, 72.0, 73.1];
+const CLICKS = [46.92, 51.5, 56.9, 64.9, 77.3, 79.7, 84.6];
+
+const canvas = document.getElementById("c");
+const g = canvas.getContext("2d", { willReadFrequently: false });
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+// ---------- frame source ----------
+const cache = new Map();
+async function frameOf(clip, idx) {
+  const i = clamp(idx, 0, CLIP_FRAMES[clip] - 1);
+  const key = `${clip}/${i}`;
+  if (cache.has(key)) return cache.get(key);
+  const blob = await (await fetch(`clips2/${clip}/${String(i).padStart(5, "0")}.jpg`)).blob();
+  const bmp = await createImageBitmap(blob);
+  cache.set(key, bmp);
+  if (cache.size > 8) {
+    const [k, b] = cache.entries().next().value;
+    b.close();
+    cache.delete(k);
+  }
+  return bmp;
+}
+
+function camAt(shot, t) {
+  const k = shot.cam;
+  if (t <= k[0][0]) return k[0];
+  for (let i = 0; i < k.length - 1; i++) {
+    if (t <= k[i + 1][0]) {
+      const p = ease((t - k[i][0]) / (k[i + 1][0] - k[i][0]));
+      return [t, k[i][1] + (k[i + 1][1] - k[i][1]) * p, k[i][2] + (k[i + 1][2] - k[i][2]) * p, k[i][3] + (k[i + 1][3] - k[i][3]) * p];
+    }
+  }
+  return k[k.length - 1];
+}
+
+function drawShot(shot, img, t, alpha) {
+  const [, s, fx, fy] = camAt(shot, t);
+  let ox = fx - fx * s, oy = fy - fy * s;
+  ox = clamp(ox, W - W * s, 0);
+  oy = clamp(oy, H - H * s, 0);
+  g.globalAlpha = alpha;
+  g.drawImage(img, ox, oy, W * s, H * s);
+  if (shot.dim) {
+    g.fillStyle = `rgba(8,7,6,${shot.dim * alpha})`;
+    g.fillRect(0, 0, W, H);
+  }
+  g.globalAlpha = 1;
+}
+
+function drawImpulse(t) {
+  const p = clamp((t - 0.15) / 1.35, 0, 1);
+  if (p <= 0) return;
+  const e = ease(p);
+  const path = (u) => [-80 + u * (W * 0.72), H * 0.62 - Math.sin(u * Math.PI * 0.9) * 140 + u * 40];
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 46; i++) {
+    const u = e - i * 0.006;
+    if (u < 0) break;
+    const [x, y] = path(u);
+    g.fillStyle = `rgba(255,${120 + i},${70 + i},${(1 - i / 46) * 0.55})`;
+    g.beginPath(); g.arc(x, y, 3.2 * (1 - i / 60), 0, Math.PI * 2); g.fill();
+  }
+  const [hx, hy] = path(e);
+  const glow = g.createRadialGradient(hx, hy, 0, hx, hy, 90 + p * 120);
+  glow.addColorStop(0, "rgba(255,190,150,0.9)");
+  glow.addColorStop(0.15, "rgba(255,107,61,0.45)");
+  glow.addColorStop(1, "rgba(255,107,61,0)");
+  g.fillStyle = glow;
+  g.fillRect(hx - 260, hy - 260, 520, 520);
+  g.restore();
+}
+
+// Transitions between worlds (brain ↔ product): a thin signal crosses the frame during the crossfade.
+const SWEEPS = [
+  { start: 14.25, dur: 1.2, y: 0.46, dir: 1 },
+  { start: 62.85, dur: 1.1, y: 0.55, dir: -1 },
+  { start: 68.45, dur: 1.0, y: 0.4, dir: 1 },
+];
+function drawSweep(t, s) {
+  const p = (t - s.start) / s.dur;
+  if (p <= 0 || p >= 1) return;
+  const e = ease(p);
+  const x = s.dir > 0 ? -200 + e * (W + 400) : W + 200 - e * (W + 400);
+  const y = H * s.y + Math.sin(p * Math.PI) * -40;
+  const a = Math.sin(p * Math.PI);
+  g.save();
+  g.globalCompositeOperation = "lighter";
+  const trail = g.createLinearGradient(x - s.dir * 520, 0, x, 0);
+  trail.addColorStop(0, "rgba(255,107,61,0)");
+  trail.addColorStop(1, `rgba(255,150,110,${0.5 * a})`);
+  g.strokeStyle = trail;
+  g.lineWidth = 2.2;
+  g.beginPath(); g.moveTo(x - s.dir * 520, y + 18); g.quadraticCurveTo(x - s.dir * 240, y - 6, x, y); g.stroke();
+  const glow = g.createRadialGradient(x, y, 0, x, y, 150);
+  glow.addColorStop(0, `rgba(255,200,165,${0.55 * a})`);
+  glow.addColorStop(0.2, `rgba(255,107,61,${0.22 * a})`);
+  glow.addColorStop(1, "rgba(255,107,61,0)");
+  g.fillStyle = glow;
+  g.fillRect(x - 160, y - 160, 320, 320);
+  g.restore();
+}
+
+function drawVignette() {
+  const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.95);
+  v.addColorStop(0, "rgba(0,0,0,0)");
+  v.addColorStop(1, "rgba(0,0,0,0.42)");
+  g.fillStyle = v;
+  g.fillRect(0, 0, W, H);
+}
+
+const END_IN = 92.4, MARK_IN = 96.1;
+function drawEndCard(t) {
+  const a1 = clamp((t - END_IN) / 1.3, 0, 1);
+  const a2 = clamp((t - MARK_IN) / 1.0, 0, 1);
+  if (a1 <= 0) return;
+  g.save();
+  const y = H * 0.47 + (1 - ease(a1)) * 14;
+  g.globalAlpha = ease(a1);
+  const left = "Lembrar é ";
+  g.font = "400 112px 'Instrument Serif'";
+  const wl = g.measureText(left).width;
+  g.font = "italic 400 112px 'Instrument Serif'";
+  const wr = g.measureText("reconstruir.").width;
+  const x0 = W / 2 - (wl + wr) / 2;
+  g.textAlign = "left";
+  g.textBaseline = "alphabetic";
+  g.font = "400 112px 'Instrument Serif'";
+  g.fillStyle = "#ece4d6";
+  g.fillText(left, x0, y);
+  g.font = "italic 400 112px 'Instrument Serif'";
+  g.fillStyle = "#ff906b";
+  g.fillText("reconstruir.", x0 + wl, y);
+  if (a2 > 0) {
+    g.textAlign = "center";
+    g.font = "400 58px 'Instrument Serif'";
+    g.letterSpacing = "8px";
+    const spread = 0.32 + 0.3 * ease(a2);
+    [[2, 0.1], [1, 0.28], [0, 1]].forEach(([k, op]) => {
+      g.globalAlpha = ease(a2) * op;
+      g.fillStyle = "#ece4d6";
+      g.fillText("ECHO", W / 2 + k * spread * 58, y + 128);
+    });
+    g.letterSpacing = "0px";
+  }
+  g.restore();
+}
+
+let CUES = [];
+let TAKES = null; // recorded narration timeline (vo-lucas/timeline.json) when ?vo=lucas
+function drawSubtitle(t) {
+  const cue = CUES.find((c) => t >= c.in && t <= c.out);
+  if (!cue) return;
+  const a = Math.min(clamp((t - cue.in) / 0.18, 0, 1), clamp((cue.out - t) / 0.22, 0, 1));
+  g.save();
+  g.globalAlpha = a;
+  g.font = "500 38px Inter";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  const lines = cue.text.split("\n");
+  const lh = 52;
+  const wMax = Math.max(...lines.map((l) => g.measureText(l).width));
+  const boxW = wMax + 64, boxH = lines.length * lh + 26;
+  const bx = W / 2 - boxW / 2, by = H - 70 - boxH;
+  g.fillStyle = "rgba(12,11,10,0.78)";
+  g.beginPath(); g.roundRect(bx, by, boxW, boxH, 16); g.fill();
+  g.fillStyle = "#f3ece0";
+  lines.forEach((l, i) => g.fillText(l, W / 2, by + 13 + lh / 2 + i * lh));
+  g.restore();
+}
+
+async function render(t) {
+  g.fillStyle = "#0a0908";
+  g.fillRect(0, 0, W, H);
+  for (const shot of SHOTS) {
+    if (t < shot.from || t > shot.to) continue;
+    const img = await frameOf(shot.clip, Math.round((t - shot.from + shot.at) * FPS));
+    drawShot(shot, img, t, ease(clamp((t - shot.from) / shot.fade, 0, 1)));
+  }
+  if (t < 2.2) {
+    g.fillStyle = `rgba(10,9,8,${1 - clamp((t - 0.9) / 1.0, 0, 1)})`;
+    g.fillRect(0, 0, W, H);
+    drawImpulse(t);
+  }
+  for (const s of SWEEPS) drawSweep(t, s);
+  drawVignette();
+  drawEndCard(t);
+  drawSubtitle(t);
+  const fadeOut = clamp((t - (END - 1.4)) / 1.4, 0, 1);
+  if (fadeOut > 0) {
+    g.fillStyle = `rgba(0,0,0,${fadeOut})`;
+    g.fillRect(0, 0, W, H);
+  }
+}
+
+// ===================== audio (offline) =====================
+// Buses: voice (lead) → master; music (score) → act level → duck under speech → master;
+// sfx (signals, clicks, reveals) → light duck → master. ?stem=voice|music|sfx isolates one bus for analysis.
+async function buildAudio(ctx, out, DURATIONS) {
+  const STEM = new URLSearchParams(location.search).get("stem");
+  const master = ctx.createGain();
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -2.5; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.12;
+  // Soft safety clipper after the limiter: transparent below ≈ -2 dBFS, never exceeds ≈ -0.9 dBFS.
+  const safety = ctx.createWaveShaper();
+  const curve = new Float32Array(4097);
+  for (let i = 0; i < curve.length; i++) { const x = (i / 2048) - 1, ax = Math.abs(x), knee = 0.8, ceil = 0.9;
+    curve[i] = Math.sign(x) * (ax <= knee ? ax : knee + (ceil - knee) * Math.tanh((ax - knee) / (ceil - knee))); }
+  safety.curve = curve; safety.oversample = "4x";
+  master.connect(limiter).connect(safety).connect(out);
+  const bus = (name) => {
+    const g = ctx.createGain();
+    g.gain.value = !STEM || STEM === name ? 1 : 0;
+    g.connect(master);
+    return g;
+  };
+  const voiceOut = bus("voice"), musicOut = bus("music"), sfxOut = bus("sfx");
+
+  // ---------- voice ----------
+  const voice = ctx.createGain();
+  voice.gain.value = 1.45;
+  const lowcut = ctx.createBiquadFilter();
+  lowcut.type = "highpass"; lowcut.frequency.value = 85;
+  const presence = ctx.createBiquadFilter();
+  presence.type = "peaking"; presence.frequency.value = 3000; presence.Q.value = 0.8; presence.gain.value = 2.5;
+  const vComp = ctx.createDynamicsCompressor();
+  vComp.threshold.value = -27; vComp.ratio.value = 4; vComp.attack.value = 0.003; vComp.release.value = 0.18; vComp.knee.value = 6;
+  voice.connect(lowcut).connect(presence).connect(vComp).connect(voiceOut);
+
+  const t0 = 0;
+  const speech = [];
+  for (const r of TAKES) {
+    const buf = await ctx.decodeAudioData(await (await fetch(`vo-lucas/${r.id}.wav`)).arrayBuffer());
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    const g0 = 10 ** (r.gainDb / 20);
+    const at = (fileT) => t0 + r.when + (fileT - r.offset); // file time → film time
+    const gp = gain.gain;
+    gp.setValueAtTime(0, t0 + r.when);
+    gp.linearRampToValueAtTime(g0, t0 + r.when + 0.015);
+    // Phrase leveling: ride each listed phrase toward the take's median, ramping inside the pauses.
+    for (const L of r.leveling ?? []) {
+      const g1 = g0 * 10 ** (L.gainDb / 20);
+      gp.setValueAtTime(g0, at(L.from) - 0.05);
+      gp.linearRampToValueAtTime(g1, at(L.from));
+      gp.setValueAtTime(g1, at(L.to));
+      gp.linearRampToValueAtTime(g0, at(L.to) + 0.05);
+    }
+    gp.setValueAtTime(g0, t0 + r.when + r.length - 0.06);
+    gp.linearRampToValueAtTime(0, t0 + r.when + r.length);
+    src.connect(gain).connect(voice);
+    src.start(t0 + r.when, r.offset, r.length);
+    speech.push([r.onset, r.onset + r.speech]);
+  }
+
+  // ---------- score: original, synthesized, in acts that change chord on the cuts ----------
+  const hz = (m) => 440 * 2 ** ((m - 69) / 12);
+  const act = ctx.createGain();   // narrative level of the score
+  const duck = ctx.createGain();  // drops under the voice
+  const tone = ctx.createBiquadFilter();
+  tone.type = "lowpass"; tone.frequency.value = 6000;
+  act.connect(duck).connect(tone).connect(musicOut);
+
+  const actLevel = [[0, 0.0], [1.2, 0.19], [7.5, 0.23], [14.5, 0.22], [44.2, 0.23], [63.1, 0.25], [76.1, 0.27], [89.5, 0.32], [92.4, 0.36], [END - 2.4, 0.32], [END - 0.3, 0.0001]];
+  act.gain.setValueAtTime(0, t0);
+  for (const [t, v] of actLevel) act.gain.linearRampToValueAtTime(v, t0 + t);
+  // Duck ≈ −9 dB under speech, with a fast attack and a gentle return.
+  duck.gain.setValueAtTime(1, t0);
+  for (const [a, b] of speech) {
+    duck.gain.setTargetAtTime(0.35, t0 + a - 0.2, 0.06);
+    duck.gain.setTargetAtTime(1, t0 + b + 0.2, 0.3);
+  }
+
+  // Shared "echo" space for the score's plucks and the sound design.
+  const delay = ctx.createDelay(1.5); delay.delayTime.value = 0.42;
+  const fb = ctx.createGain(); fb.gain.value = 0.36;
+  const dTone = ctx.createBiquadFilter(); dTone.type = "lowpass"; dTone.frequency.value = 2400;
+  delay.connect(dTone).connect(fb).connect(delay);
+  const echoMusic = ctx.createGain(); echoMusic.gain.value = 0.45;
+  dTone.connect(echoMusic).connect(act);
+
+  // Pad voice: detuned saw/triangle through a lowpass that opens over the section.
+  function pad(notes, s, e, level, cut0, cut1, bright = 0) {
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass"; f.Q.value = 0.7;
+    f.frequency.setValueAtTime(cut0, t0 + s);
+    f.frequency.linearRampToValueAtTime(cut1, t0 + e);
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0, t0 + s);
+    out.gain.linearRampToValueAtTime(level, t0 + s + 2.2);
+    out.gain.setValueAtTime(level, t0 + e - 0.2);
+    out.gain.linearRampToValueAtTime(0, t0 + e + 2.8); // release overlaps the next chord
+    f.connect(out).connect(act);
+    for (const m of notes) {
+      for (const det of [-7, 0, 6]) {
+        const o = ctx.createOscillator();
+        o.type = m < 50 ? "triangle" : bright ? "sawtooth" : det === 0 ? "triangle" : "sawtooth";
+        o.frequency.value = hz(m);
+        o.detune.value = det;
+        const v = ctx.createGain();
+        v.gain.value = m < 50 ? 0.32 : 0.11;
+        o.connect(v).connect(f);
+        o.start(t0 + s); o.stop(t0 + e + 3);
+      }
+    }
+  }
+  // Arpeggio: soft plucks over the chord, sent into the echo — the musical "echo" motif.
+  function arp(notes, s, e, step, level, cutoff = 2600) {
+    const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = cutoff;
+    const out = ctx.createGain(); out.gain.value = level;
+    f.connect(out); out.connect(act); out.connect(delay);
+    const seq = [...notes, ...notes.slice(1, -1).reverse()];
+    let k = 0;
+    for (let t = s; t < e - 0.05; t += step, k++) {
+      const m = seq[k % seq.length];
+      const o = ctx.createOscillator(); const env = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = hz(m);
+      const accent = k % 4 === 0 ? 1 : 0.7;
+      env.gain.setValueAtTime(0, t0 + t);
+      env.gain.linearRampToValueAtTime(0.5 * accent, t0 + t + 0.006);
+      env.gain.exponentialRampToValueAtTime(0.0001, t0 + t + 0.55);
+      o.connect(env).connect(f);
+      o.start(t0 + t); o.stop(t0 + t + 0.6);
+    }
+  }
+  // Heartbeat-like pulse: a soft low thump on the beat.
+  function pulse(s, e, period, level) {
+    for (let t = s; t < e; t += period) {
+      const o = ctx.createOscillator(); const env = ctx.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(92, t0 + t);
+      o.frequency.exponentialRampToValueAtTime(44, t0 + t + 0.14);
+      env.gain.setValueAtTime(0, t0 + t);
+      env.gain.linearRampToValueAtTime(level, t0 + t + 0.008);
+      env.gain.exponentialRampToValueAtTime(0.0001, t0 + t + 0.32);
+      o.connect(env).connect(act);
+      o.start(t0 + t); o.stop(t0 + t + 0.35);
+    }
+  }
+
+  const Dm9 = [38, 50, 57, 62, 65, 69, 76], Bbmaj7 = [34, 46, 53, 62, 65, 69, 74], Fadd9 = [41, 53, 60, 65, 67, 69, 72];
+  const Cadd9 = [36, 48, 55, 62, 64, 67, 74], Gm9 = [43, 55, 58, 62, 65, 69, 74], Dmadd9 = [38, 45, 50, 57, 62, 65, 69, 76, 81];
+  const ARP = { Dm: [62, 65, 69, 72, 76], Bb: [58, 62, 65, 69, 74], F: [60, 65, 67, 69, 72], C: [60, 62, 67, 72, 74], Gm: [62, 65, 67, 70, 74] };
+  const BEAT = 60 / 72;
+
+  // I · darkness (0–7.5): a low drone, the impulse, two isolated signals.
+  pad([38, 50], 0.4, 7.5, 0.16, 220, 420);
+  // II · the brain appears (7.5–14.5): Dm9 opens slowly.
+  pad(Dm9, 7.5, 14.5, 0.15, 380, 1500);
+  // III · Lucas (14.5–27.3): Bbmaj7 → F, a heartbeat begins.
+  pad(Bbmaj7, 14.5, 21.0, 0.14, 700, 1200);
+  pad(Fadd9, 21.0, 27.3, 0.14, 900, 1300);
+  pulse(14.5, 44.2, BEAT, 0.16);
+  // IV · records and the AWS milestones (27.3–44.2): C, then Dm; the echo motif enters.
+  pad(Cadd9, 27.3, 35.2, 0.13, 900, 1300);
+  pad(Dm9, 35.2, 44.2, 0.13, 1000, 1500);
+  arp(ARP.Dm, 35.2, 44.2, BEAT / 2, 0.07, 2000);
+  // V · the product proves it (44.2–63.1): Bb → F → C under Diálogo and Linha do tempo.
+  pad(Bbmaj7, 44.2, 51.5, 0.13, 1000, 1400);
+  pad(Fadd9, 51.5, 55.1, 0.13, 1100, 1500);
+  pad(Cadd9, 55.1, 63.1, 0.13, 1100, 1600);
+  arp(ARP.Bb, 44.2, 51.5, BEAT / 2, 0.07, 2200);
+  arp(ARP.F, 51.5, 55.1, BEAT / 2, 0.075, 2300);
+  arp(ARP.C, 55.1, 63.1, BEAT / 2, 0.075, 2400);
+  pulse(44.2, 63.1, BEAT, 0.14);
+  // VI · the network and the trace (63.1–76.1): Gm9 → Bb, the strings brighten.
+  pad(Gm9, 63.1, 68.7, 0.14, 1200, 1900, 1);
+  pad(Bbmaj7, 68.7, 76.1, 0.15, 1500, 2400, 1);
+  arp(ARP.Gm, 63.1, 68.7, BEAT / 2, 0.08, 2600);
+  arp(ARP.Bb, 68.7, 76.1, BEAT / 2, 0.085, 3000);
+  pulse(63.1, 76.1, BEAT, 0.17);
+  // VII · reconstruction (76.1–92.4): Bb → C, rising toward the line.
+  pad(Bbmaj7, 76.1, 83.1, 0.16, 1600, 2600, 1);
+  pad(Cadd9, 83.1, 92.4, 0.17, 1800, 3600, 1);
+  arp(ARP.Bb, 76.1, 83.1, BEAT / 2, 0.085, 3000);
+  arp(ARP.C, 83.1, 92.4, BEAT / 4, 0.075, 3400);
+  pulse(76.1, 92.4, BEAT / 2, 0.15);
+  // VIII · "Lembrar é reconstruir." (92.4–end): resolution on a wide D minor.
+  pad(Dmadd9, 92.4, END - 0.2, 0.18, 2400, 900, 1);
+  arp(ARP.Dm, 92.4, 96.0, BEAT, 0.06, 2000);
+
+  // ---------- sound design ----------
+  const sfx = ctx.createGain();
+  sfx.connect(sfxOut);
+  const sfxDuck = sfx.gain;
+  sfxDuck.setValueAtTime(1, t0);
+  for (const [a, b] of speech) { sfxDuck.setTargetAtTime(0.35, t0 + a - 0.15, 0.05); sfxDuck.setTargetAtTime(1, t0 + b + 0.15, 0.25); }
+  const echoSfx = ctx.createGain(); echoSfx.gain.value = 0.5;
+  dTone.connect(echoSfx).connect(sfx);
+
+  const ping = (time, freq, level, decay = 1.6) => {
+    for (const [mult, lv] of [[1, 1], [2.01, 0.25], [3.02, 0.08]]) {
+      const o = ctx.createOscillator(); const e = ctx.createGain();
+      o.type = "sine"; o.frequency.value = freq * mult;
+      e.gain.setValueAtTime(0, t0 + time);
+      e.gain.linearRampToValueAtTime(level * lv, t0 + time + 0.008);
+      e.gain.exponentialRampToValueAtTime(0.0001, t0 + time + decay);
+      o.connect(e); e.connect(sfx); e.connect(delay);
+      o.start(t0 + time); o.stop(t0 + time + decay + 0.1);
+    }
+  };
+  const PENTA = [587.33, 698.46, 783.99, 880, 1046.5];
+  SIGNALS.forEach((t, i) => ping(t, PENTA[i % PENTA.length], t > 60 ? 0.045 : 0.07, t > 60 ? 1.3 : 1.8));
+  CLICKS.forEach((t) => ping(t, 1318.5, 0.026, 0.45));
+
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  const noise = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+  const nd = noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = rnd();
+  // Air swell rising into a transition.
+  const swell = (end, len, level, f0, f1) => {
+    const ns = ctx.createBufferSource(); ns.buffer = noise;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.2;
+    bp.frequency.setValueAtTime(f0, t0 + end - len); bp.frequency.exponentialRampToValueAtTime(f1, t0 + end);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0 + end - len);
+    g.gain.linearRampToValueAtTime(level, t0 + end - 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + end + 0.5);
+    ns.connect(bp).connect(g).connect(sfx);
+    ns.start(t0 + end - len); ns.stop(t0 + end + 0.6);
+  };
+  // Soft low "reveal" hit: a sine drop with a short filtered body.
+  const reveal = (time, level, decay = 2.2) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(110, t0 + time);
+    o.frequency.exponentialRampToValueAtTime(38, t0 + time + 0.6);
+    g.gain.setValueAtTime(0, t0 + time);
+    g.gain.linearRampToValueAtTime(level, t0 + time + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + time + decay);
+    o.connect(g).connect(sfx);
+    o.start(t0 + time); o.stop(t0 + time + decay + 0.1);
+  };
+  swell(1.4, 1.3, 0.07, 300, 2400);         // the opening impulse
+  swell(7.45, 0.9, 0.04, 400, 1800);        // into the brain (in the pause before "…e se conectam")
+  reveal(7.45, 0.13, 0.9);
+  swell(14.6, 1.1, 0.05, 500, 2600);         // brain → Lucas
+  reveal(14.6, 0.16);
+  reveal(51.5, 0.12);                        // the source opens
+  swell(63.1, 0.9, 0.045, 400, 2200);        // product → brain again
+  reveal(63.1, 0.14);
+  swell(68.7, 0.8, 0.04, 600, 2600);         // into the neuron
+  swell(92.4, 2.4, 0.06, 200, 1600);         // into the final line
+  reveal(92.35, 0.18, 1.2);
+  ping(96.2, 587.33, 0.08, 3.2);             // "ECHO." (lands with the spoken word)
+  ping(96.2, 880, 0.035, 3.2);
+
+  // ======================= v3 layers =======================
+  const DRY = new URLSearchParams(location.search).has("dry"); // analysis only: voice without reverb/layers
+  const byId = Object.fromEntries(TAKES.map((r) => [r.id, r]));
+  const takeBuf = async (id) => ctx.decodeAudioData(await (await fetch(`vo-lucas/${id}.wav`)).arrayBuffer());
+  const filmT = (r, fileT) => t0 + r.when + (fileT - r.offset);
+
+  // Generated stereo impulse response: pre-delay, exponential decay, highs damped as it decays.
+  function impulse(seconds, decay, preDelay, seedIr) {
+    const len = Math.ceil(ctx.sampleRate * seconds);
+    const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    let sd = seedIr;
+    const r = () => ((sd = (sd * 48271) % 2147483647) / 2147483647) * 2 - 1;
+    for (let c = 0; c < 2; c++) {
+      const d = ir.getChannelData(c);
+      let lp = 0;
+      for (let i = 0; i < len; i++) {
+        const t = i / ctx.sampleRate;
+        if (t < preDelay) continue;
+        const k = Math.min(0.96, 0.25 + (t / seconds) * 0.75); // darker over time
+        lp = lp * k + r() * (1 - k);
+        d[i] = lp * Math.exp(-(t - preDelay) * decay) * 3;
+      }
+    }
+    return ir;
+  }
+
+  // ---- voice depth: subtle room reverb on every line (part of the voice stem) ----
+  const room = ctx.createConvolver();
+  room.buffer = impulse(1.6, 3.4, 0.025, 11);
+  const sendHp = ctx.createBiquadFilter(); sendHp.type = "highpass"; sendHp.frequency.value = 320;
+  const sendLp = ctx.createBiquadFilter(); sendLp.type = "lowpass"; sendLp.frequency.value = 6500;
+  const roomWet = ctx.createGain(); roomWet.gain.value = 1.0;
+  if (DRY) roomWet.connect = () => roomWet; // keep the graph, drop the send
+  vComp.connect(sendHp).connect(sendLp).connect(room).connect(roomWet).connect(voiceOut);
+  // The final two lines get a larger, longer space.
+  // Ducked send: thinner while the voice speaks, blooming as each phrase ends (deeper on the last two lines).
+  roomWet.gain.setValueAtTime(1.0, t0);
+  for (const r of TAKES) {
+    const last = r.id === "L15" || r.id === "L16";
+    roomWet.gain.setTargetAtTime(last ? 0.8 : 0.4, t0 + r.onset - 0.05, 0.04);
+    roomWet.gain.setTargetAtTime(last ? 1.9 : 1.0, t0 + r.onset + r.speech - 0.12, 0.08);
+  }
+
+  // ---- light atmospheric bed under the score: slow, wide, high harmonics (music stem) ----
+  const atmos = ctx.createGain();
+  atmos.gain.setValueAtTime(0, t0);
+  for (const [t, v] of [[0.5, 0], [7.5, 0.05], [14.5, 0.04], [44.2, 0.045], [63.1, 0.06], [76.1, 0.07], [92.4, 0.09], [END - 1.2, 0.0001]]) atmos.gain.linearRampToValueAtTime(v, t0 + t);
+  const atmosLp = ctx.createBiquadFilter(); atmosLp.type = "lowpass"; atmosLp.frequency.value = 4200;
+  atmos.connect(atmosLp).connect(act);
+  [[74, -0.7, 0.05], [81, 0.6, 0.07], [86, -0.3, 0.09], [69, 0.8, 0.11]].forEach(([m, pan, rate], i) => {
+    const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = hz(m);
+    const trem = ctx.createGain(); trem.gain.value = 0.5;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = rate;
+    const lfoAmt = ctx.createGain(); lfoAmt.gain.value = 0.45;
+    lfo.connect(lfoAmt).connect(trem.gain);
+    const p = ctx.createStereoPanner(); p.pan.value = pan;
+    o.connect(trem).connect(p).connect(atmos);
+    o.start(t0 + 0.5 + i * 0.7); lfo.start(t0); o.stop(t0 + END); lfo.stop(t0 + END);
+  });
+
+  // ---- ambience by world, crossfading on the cuts (sfx stem) ----
+  const longNoise = ctx.createBuffer(2, ctx.sampleRate * 8, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = longNoise.getChannelData(c);
+    let b = 0;
+    for (let i = 0; i < d.length; i++) { b = (b + 0.02 * rnd()) / 1.02; d[i] = b * 3.5; } // brown noise, decorrelated per channel
+  }
+  const amb = (filterType, freq, q, points) => {
+    const src = ctx.createBufferSource(); src.buffer = longNoise; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = filterType; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t0);
+    for (const [t, v] of points) g.gain.linearRampToValueAtTime(v, t0 + t);
+    src.connect(f).connect(g).connect(sfx);
+    src.start(t0); src.stop(t0 + END);
+  };
+  // Neural hum in the brain scenes; a lighter, airy room in the product screens.
+  amb("lowpass", 260, 0.7, [[0.3, 0], [2.0, 0.09], [14.4, 0.09], [15.6, 0.006], [62.9, 0.006], [63.9, 0.095], [91.0, 0.095], [92.4, 0.11], [END - 1.2, 0.0001]]);
+  amb("bandpass", 2600, 0.6, [[14.3, 0], [15.6, 0.018], [62.9, 0.018], [63.9, 0.0], [END, 0]]);
+
+  // Grains that travel with the signal: a short, panned cascade on every fire.
+  const grains = (time, from, to, count, level) => {
+    for (let k = 0; k < count; k++) {
+      const t = time + k * (0.55 / count) + ((k * 37) % 7) * 0.006;
+      const o = ctx.createOscillator(); const e = ctx.createGain(); const p = ctx.createStereoPanner();
+      o.type = "sine"; o.frequency.value = 2600 + ((k * 431) % 1900);
+      p.pan.value = from + ((to - from) * k) / (count - 1);
+      e.gain.setValueAtTime(0, t0 + t);
+      e.gain.linearRampToValueAtTime(level * (1 - k / (count * 1.4)), t0 + t + 0.004);
+      e.gain.exponentialRampToValueAtTime(0.0001, t0 + t + 0.12);
+      o.connect(e).connect(p).connect(sfx); e.connect(delay);
+      o.start(t0 + t); o.stop(t0 + t + 0.14);
+    }
+  };
+  SIGNALS.forEach((t, i) => grains(t + 0.05, i % 2 ? 0.6 : -0.6, i % 2 ? -0.5 : 0.5, 12, t > 60 ? 0.012 : 0.018));
+  // The opening impulse crosses the frame left → right; its whoosh follows it.
+  grains(0.3, -0.9, 0.7, 14, 0.014);
+
+  if (DRY) return;
+  // ---- "Lembrar é reconstruir.": a reverse swell made from Lucas's own voice rising into the line ----
+  {
+    const r = byId.L15;
+    const buf = await takeBuf("L15");
+    const head = 0.9; // first words of the take, reverbed then reversed
+    const off = new OfflineAudioContext(2, Math.ceil(ctx.sampleRate * (head + 3.2)), ctx.sampleRate);
+    const s = off.createBufferSource(); s.buffer = buf;
+    const cv = off.createConvolver();
+    const irLen = Math.ceil(ctx.sampleRate * 3);
+    const irBuf = off.createBuffer(2, irLen, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = irBuf.getChannelData(c); let sd = 99 + c; for (let i = 0; i < irLen; i++) { sd = (sd * 48271) % 2147483647; d[i] = ((sd / 2147483647) * 2 - 1) * Math.exp(-(i / ctx.sampleRate) * 1.6); } }
+    cv.buffer = irBuf;
+    const hp = off.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 400;
+    s.connect(hp).connect(cv).connect(off.destination);
+    s.start(0, r.offset + 0.18, head);
+    const wet = await off.startRendering();
+    for (let c = 0; c < 2; c++) wet.getChannelData(c).reverse();
+    const rev = ctx.createBufferSource(); rev.buffer = wet;
+    const g = ctx.createGain(); g.gain.value = 0.11;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5000;
+    rev.connect(lp).connect(g).connect(voiceOut);
+    const len = wet.length / ctx.sampleRate;
+    rev.start(t0 + r.onset - len + 0.05); // the swell ends as the first syllable begins
+  }
+
+  // ---- "ECHO.": the word repeats three times, alternating sides, darker each time ----
+  {
+    const r = byId.L16;
+    const buf = await takeBuf("L16");
+    [[0.46, -0.55, 0.26, 3800], [0.92, 0.6, 0.14, 2600], [1.38, -0.35, 0.07, 1700]].forEach(([d, pan, gain, lpHz]) => {
+      const s = ctx.createBufferSource(); s.buffer = buf;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = lpHz;
+      const g = ctx.createGain(); g.gain.value = gain * 10 ** (r.gainDb / 20) * 1.45;
+      const p = ctx.createStereoPanner(); p.pan.value = pan;
+      s.connect(lp).connect(g).connect(p).connect(voiceOut);
+      g.connect(room);
+      s.start(t0 + r.when + d, r.offset, r.length);
+    });
+  }
+}
+
+
+// ===================== MP4 muxer (ISO BMFF, faststart, no fragments) =====================
+function mux({ width, height, video, avcC, audio, asc, sampleRate, channels }) {
+  const enc = new TextEncoder();
+  const u8 = (...b) => new Uint8Array(b);
+  const u16 = (v) => u8((v >> 8) & 255, v & 255);
+  const u32 = (v) => u8((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255);
+  const cat = (parts) => {
+    const n = parts.reduce((s, p) => s + p.length, 0);
+    const out = new Uint8Array(n);
+    let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+  };
+  const box = (type, ...parts) => { const body = cat(parts); return cat([u32(body.length + 8), enc.encode(type), body]); };
+  const full = (type, version, flags, ...parts) => box(type, u8(version, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255), ...parts);
+  const zeros = (n) => new Uint8Array(n);
+  const MATRIX = cat([u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000)]);
+
+  const VTS = 30000, VDUR = 1000; // 30 fps
+  const ATS = sampleRate;
+  const vDur = video.length * VDUR;
+  const aDur = audio.reduce((s, a) => s + a.duration, 0);
+  const movieMs = Math.round(Math.max(vDur / VTS, aDur / ATS) * 1000);
+
+  // Interleave samples by time so players read both tracks sequentially.
+  const order = [];
+  let vi = 0, ai = 0, at = 0;
+  while (vi < video.length || ai < audio.length) {
+    const vt = vi < video.length ? (vi * VDUR) / VTS : Infinity;
+    const atS = ai < audio.length ? at / ATS : Infinity;
+    if (vt <= atS) order.push(["v", vi++]);
+    else { order.push(["a", ai]); at += audio[ai].duration; ai++; }
+  }
+
+  const desc = (tag, body) => cat([u8(tag, 0x80, 0x80, 0x80, body.length), body]);
+  const esds = full("esds", 0, 0, desc(3, cat([u16(2), u8(0), desc(4, cat([u8(0x40, 0x15), u8(0, 0x18, 0), u32(192000), u32(192000), desc(5, asc)])), desc(6, u8(2))])));
+  const mp4a = box("mp4a", zeros(6), u16(1), zeros(8), u16(channels), u16(16), zeros(4), u32(ATS << 16), esds);
+  const avc1 = box("avc1", zeros(6), u16(1), zeros(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), zeros(32), u16(0x0018), u16(0xffff), box("avcC", avcC));
+
+  const stts = (entries) => full("stts", 0, 0, u32(entries.length), ...entries.flatMap(([c, d]) => [u32(c), u32(d)]));
+  const runs = (durs) => {
+    const out = [];
+    for (const d of durs) { const last = out[out.length - 1]; if (last && last[1] === d) last[0]++; else out.push([1, d]); }
+    return out;
+  };
+  const stsz = (sizes) => full("stsz", 0, 0, u32(0), u32(sizes.length), ...sizes.map(u32));
+  const stsc = full("stsc", 0, 0, u32(1), u32(1), u32(1), u32(1)); // one sample per chunk
+  const stco = (offsets) => full("stco", 0, 0, u32(offsets.length), ...offsets.map(u32));
+  const keys = video.map((v, i) => (v.key ? i + 1 : 0)).filter(Boolean);
+  const dinf = box("dinf", full("dref", 0, 0, u32(1), full("url ", 0, 1)));
+  const hdlr = (type, name) => full("hdlr", 0, 0, u32(0), enc.encode(type), zeros(12), enc.encode(name + "\0"));
+  const tkhd = (id, durMs, isAudio) => full("tkhd", 0, 3, u32(0), u32(0), u32(id), u32(0), u32(durMs), zeros(8), u16(0), u16(isAudio ? 1 : 0), u16(isAudio ? 0x0100 : 0), u16(0), MATRIX, u32(isAudio ? 0 : width << 16), u32(isAudio ? 0 : height << 16));
+  const mdhd = (ts, dur) => full("mdhd", 0, 0, u32(0), u32(0), u32(ts), u32(dur), u16(0x55c4), u16(0));
+
+  const build = (vOff, aOff) => {
+    const vTrak = box("trak", tkhd(1, Math.round((vDur / VTS) * 1000), false), box("mdia", mdhd(VTS, vDur), hdlr("vide", "ECHO video"),
+      box("minf", full("vmhd", 0, 1, zeros(8)), dinf, box("stbl", full("stsd", 0, 0, u32(1), avc1), stts([[video.length, VDUR]]), full("stss", 0, 0, u32(keys.length), ...keys.map(u32)), stsc, stsz(video.map((v) => v.data.length)), stco(vOff)))));
+    const aTrak = box("trak", tkhd(2, Math.round((aDur / ATS) * 1000), true), box("mdia", mdhd(ATS, aDur), hdlr("soun", "ECHO audio"),
+      box("minf", full("smhd", 0, 0, zeros(4)), dinf, box("stbl", full("stsd", 0, 0, u32(1), mp4a), stts(runs(audio.map((a) => a.duration))), stsc, stsz(audio.map((a) => a.data.length)), stco(aOff)))));
+    const mvhd = full("mvhd", 0, 0, u32(0), u32(0), u32(1000), u32(movieMs), u32(0x00010000), u16(0x0100), zeros(10), MATRIX, zeros(24), u32(3));
+    return box("moov", mvhd, vTrak, aTrak);
+  };
+
+  const ftyp = box("ftyp", enc.encode("isom"), u32(512), enc.encode("isomiso2avc1mp41"));
+  const placeholder = build(video.map(() => 0), audio.map(() => 0));
+  let offset = ftyp.length + placeholder.length + 8;
+  const vOff = new Array(video.length), aOff = new Array(audio.length);
+  for (const [k, i] of order) {
+    const s = k === "v" ? video[i] : audio[i];
+    if (k === "v") vOff[i] = offset; else aOff[i] = offset;
+    offset += s.data.length;
+  }
+  const moov = build(vOff, aOff);
+  const mdatSize = offset - ftyp.length - moov.length;
+  const parts = [ftyp, moov, u32(mdatSize), enc.encode("mdat")];
+  for (const [k, i] of order) parts.push((k === "v" ? video[i] : audio[i]).data);
+  return new Blob(parts, { type: "video/mp4" });
+}
+
+// ===================== run =====================
+const log = (m) => { window.__log = (window.__log || []).concat(m); };
+async function main() {
+  await document.fonts.load("400 112px 'Instrument Serif'");
+  await document.fonts.load("italic 400 112px 'Instrument Serif'");
+  await document.fonts.load("500 38px Inter");
+  const DURATIONS = Object.fromEntries((await (await fetch("vo/durations.json")).json()).map((d) => [d.id, d]));
+  TAKES = await (await fetch("vo-lucas/timeline.json")).json(); // this cut always uses the recorded narration
+  if (TAKES) {
+    const byId = Object.fromEntries(TAKES.map((r) => [r.id, r]));
+    CUES = NARRATION.filter(([, , text]) => text).map(([id, , text]) => ({ id, text, in: byId[id].cueIn, out: byId[id].cueOut }));
+  } else {
+    CUES = NARRATION.filter(([, , text]) => text).map(([id, start, text]) => ({ id, text, in: start + DURATIONS[id].speechIn - 0.1, out: start + DURATIONS[id].speechOut + 0.35 }));
+    for (let i = 0; i < CUES.length - 1; i++) CUES[i].out = Math.min(CUES[i].out, CUES[i + 1].in - 0.05);
+  }
+  window.__cues = CUES;
+
+  // ---- audio ----
+  const SR = 48000, CH = 2;
+  const off = new OfflineAudioContext(CH, Math.ceil(SR * END), SR);
+  await buildAudio(off, off.destination, DURATIONS);
+  const mixed = await off.startRendering();
+  // Short-term level (100 ms) and clipping of whatever was rendered: the full mix, or one stem.
+  const envOf = (buf) => { const a = buf.getChannelData(0), b = buf.getChannelData(1), win = SR / 10, out = []; let pk = 0, clip = 0;
+    for (let i = 0; i < buf.length; i += win) { let s = 0, n = 0; for (let k = i; k < Math.min(buf.length, i + win); k++) { const v = (a[k] + b[k]) / 2; s += v * v; n++; const p = Math.max(Math.abs(a[k]), Math.abs(b[k])); if (p > pk) pk = p; if (p >= 0.999) clip++; } out.push(+(10 * Math.log10(s / n + 1e-12)).toFixed(1)); }
+    return { env100: out, peakDb: +(20 * Math.log10(pk + 1e-12)).toFixed(2), clipped: clip }; };
+  const STEM = new URLSearchParams(location.search).get("stem");
+  if (STEM) { window.__done = { stem: STEM, ...envOf(mixed), speech: TAKES.map((r) => [r.onset, r.onset + r.speech]) }; return; }
+  window.__mix = envOf(mixed);
+  const audioChunks = [];
+  let asc = null;
+  const aenc = new AudioEncoder({
+    output: (chunk, meta) => {
+      if (meta?.decoderConfig?.description && !asc) asc = new Uint8Array(meta.decoderConfig.description);
+      const data = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(data);
+      audioChunks.push({ data, duration: Math.round(((chunk.duration ?? 21333) * SR) / 1e6) || 1024 });
+    },
+    error: (e) => log("audio error " + e),
+  });
+  aenc.configure({ codec: "mp4a.40.2", sampleRate: SR, numberOfChannels: CH, bitrate: 192000 });
+  const L = mixed.getChannelData(0), R = mixed.getChannelData(1);
+  const BLOCK = 1024;
+  for (let i = 0; i < mixed.length; i += BLOCK) {
+    const n = Math.min(BLOCK, mixed.length - i);
+    const planar = new Float32Array(n * 2);
+    planar.set(L.subarray(i, i + n), 0);
+    planar.set(R.subarray(i, i + n), n);
+    const ad = new AudioData({ format: "f32-planar", sampleRate: SR, numberOfFrames: n, numberOfChannels: CH, timestamp: Math.round((i / SR) * 1e6), data: planar });
+    aenc.encode(ad);
+    ad.close();
+  }
+  await aenc.flush();
+  // Peak / level report of the exact mix that goes into the file.
+  let peak = 0;
+  const env = [];
+  for (let i = 0; i < mixed.length; i += SR / 2) {
+    let s = 0, n = 0;
+    for (let k = i; k < Math.min(mixed.length, i + SR / 2); k++) { const v = (L[k] + R[k]) / 2; s += v * v; n++; peak = Math.max(peak, Math.abs(L[k]), Math.abs(R[k])); }
+    env.push(+(10 * Math.log10(s / n + 1e-12)).toFixed(1));
+  }
+  window.__audio = { peakDb: +(20 * Math.log10(peak)).toFixed(2), env, chunks: audioChunks.length };
+
+  // ---- video ----
+  const videoChunks = [];
+  let avcC = null, lastTs = -1, outOfOrder = 0;
+  const venc = new VideoEncoder({
+    output: (chunk, meta) => {
+      if (meta?.decoderConfig?.description && !avcC) avcC = new Uint8Array(meta.decoderConfig.description);
+      if (chunk.timestamp < lastTs) outOfOrder++;
+      lastTs = chunk.timestamp;
+      const data = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(data);
+      videoChunks.push({ data, key: chunk.type === "key" });
+    },
+    error: (e) => log("video error " + e),
+  });
+  venc.configure({ codec: "avc1.640028", width: W, height: H, bitrate: 14_000_000, framerate: FPS, avc: { format: "avc" }, latencyMode: "quality" });
+
+  // Motion probe: mean absolute difference between consecutive frames (64×36 luma).
+  const probe = new OffscreenCanvas(64, 36).getContext("2d", { willReadFrequently: true });
+  let prev = null;
+  const motion = [];
+  const total = Math.round(END * FPS);
+  for (let f = 0; f < total; f++) {
+    const t = f / FPS;
+    await render(t);
+    probe.drawImage(canvas, 0, 0, 64, 36);
+    const px = probe.getImageData(0, 0, 64, 36).data;
+    if (prev) { let d = 0; for (let i = 0; i < px.length; i += 4) d += Math.abs(px[i] - prev[i]) + Math.abs(px[i + 1] - prev[i + 1]) + Math.abs(px[i + 2] - prev[i + 2]); motion.push(+(d / (64 * 36 * 3)).toFixed(3)); }
+    prev = px;
+    const vf = new VideoFrame(canvas, { timestamp: Math.round((f * 1e6) / FPS), duration: Math.round(1e6 / FPS) });
+    venc.encode(vf, { keyFrame: f % 60 === 0 });
+    vf.close();
+    while (venc.encodeQueueSize > 6) await new Promise((r) => setTimeout(r, 1));
+    if (f % 300 === 0) log(`frame ${f}/${total}`);
+  }
+  await venc.flush();
+  window.__motion = motion;
+
+  const blob = mux({ width: W, height: H, video: videoChunks, avcC, audio: audioChunks, asc, sampleRate: SR, channels: CH });
+  const res = await fetch("/upload", { method: "POST", body: blob });
+  window.__done = { size: blob.size, frames: videoChunks.length, keyframes: videoChunks.filter((v) => v.key).length, outOfOrder, audioFrames: audioChunks.length, ascHex: [...(asc || [])].map((b) => b.toString(16).padStart(2, "0")).join(""), upload: res.status };
+}
+main().catch((e) => (window.__done = { error: String((e && e.stack) || e) }));
+</script>
+</body>
+</html>

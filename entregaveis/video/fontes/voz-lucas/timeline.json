@@ -1,0 +1,350 @@
+[
+ {
+  "id": "L01",
+  "onset": 1.17,
+  "when": 0.99,
+  "offset": 1.59,
+  "length": 3.03,
+  "speech": 2.45,
+  "gainDb": 16.5,
+  "ttsLevel": -20.6,
+  "takeLevel": -37,
+  "takePeak": -19.6,
+  "cueIn": 1.07,
+  "cueOut": 3.97,
+  "gapToNext": 1.13,
+  "leveling": [
+   {
+    "from": 2.85,
+    "to": 4.21,
+    "gainDb": 1
+   }
+  ]
+ },
+ {
+  "id": "L02",
+  "onset": 4.75,
+  "when": 4.57,
+  "offset": 1.01,
+  "length": 4.51,
+  "speech": 4.23,
+  "gainDb": 17.5,
+  "ttsLevel": -20.6,
+  "takeLevel": -38.1,
+  "takePeak": -17.7,
+  "cueIn": 4.65,
+  "cueOut": 9.33,
+  "gapToNext": 1.71,
+  "leveling": [
+   {
+    "from": 1.2,
+    "to": 1.53,
+    "gainDb": 1.2
+   },
+   {
+    "from": 1.67,
+    "to": 2.13,
+    "gainDb": 1.2
+   }
+  ]
+ },
+ {
+  "id": "L03",
+  "onset": 10.69,
+  "when": 10.51,
+  "offset": 0.77,
+  "length": 4.3,
+  "speech": 3.72,
+  "gainDb": 18,
+  "ttsLevel": -20.6,
+  "takeLevel": -38.5,
+  "takePeak": -18.8,
+  "cueIn": 10.59,
+  "cueOut": 14.76,
+  "gapToNext": 1.09,
+  "leveling": []
+ },
+ {
+  "id": "L04",
+  "onset": 15.5,
+  "when": 15.32,
+  "offset": 0.65,
+  "length": 10.54,
+  "speech": 9.96,
+  "gainDb": 17.6,
+  "ttsLevel": -20.6,
+  "takeLevel": -38.2,
+  "takePeak": -15,
+  "cueIn": 15.4,
+  "cueOut": 25.81,
+  "gapToNext": 1.93,
+  "leveling": [
+   {
+    "from": 1.01,
+    "to": 1.57,
+    "gainDb": -2.2
+   },
+   {
+    "from": 9.93,
+    "to": 10.76,
+    "gainDb": 2.4
+   }
+  ]
+ },
+ {
+  "id": "L05",
+  "onset": 27.39,
+  "when": 27.21,
+  "offset": 0.75,
+  "length": 6.99,
+  "speech": 6.57,
+  "gainDb": 14.8,
+  "ttsLevel": -20.6,
+  "takeLevel": -35.4,
+  "takePeak": -13,
+  "cueIn": 27.29,
+  "cueOut": 34.31,
+  "gapToNext": 1.29,
+  "leveling": [
+   {
+    "from": 2.9,
+    "to": 4.51,
+    "gainDb": 1.3
+   },
+   {
+    "from": 6.21,
+    "to": 7.49,
+    "gainDb": 1.2
+   }
+  ]
+ },
+ {
+  "id": "L06",
+  "onset": 35.25,
+  "when": 35.07,
+  "offset": 1.19,
+  "length": 3.55,
+  "speech": 3.19,
+  "gainDb": 17.1,
+  "ttsLevel": -20.6,
+  "takeLevel": -37.7,
+  "takePeak": -16.1,
+  "cueIn": 35.15,
+  "cueOut": 38.75,
+  "gapToNext": 0.46,
+  "leveling": [
+   {
+    "from": 2.48,
+    "to": 4.13,
+    "gainDb": 1.1
+   }
+  ]
+ },
+ {
+  "id": "L07",
+  "onset": 38.9,
+  "when": 38.72,
+  "offset": 0.78,
+  "length": 5.76,
+  "speech": 5.25,
+  "gainDb": 17.1,
+  "ttsLevel": -20.6,
+  "takeLevel": -37.7,
+  "takePeak": -13.6,
+  "cueIn": 38.8,
+  "cueOut": 44.5,
+  "gapToNext": 0.71,
+  "leveling": [
+   {
+    "from": 4.87,
+    "to": 5.29,
+    "gainDb": 2.3
+   }
+  ]
+ },
+ {
+  "id": "L08",
+  "onset": 44.86,
+  "when": 44.68,
+  "offset": 0.96,
+  "length": 5.94,
+  "speech": 5.58,
+  "gainDb": 17.4,
+  "ttsLevel": -20.6,
+  "takeLevel": -38,
+  "takePeak": -18.7,
+  "cueIn": 44.76,
+  "cueOut": 50.79,
+  "gapToNext": 1.56,
+  "leveling": [
+   {
+    "from": 3.94,
+    "to": 4.8,
+    "gainDb": -1.5
+   },
+   {
+    "from": 5.12,
+    "to": 6.72,
+    "gainDb": 0.8
+   }
+  ]
+ },
+ {
+  "id": "L09",
+  "onset": 52,
+  "when": 51.82,
+  "offset": 0.98,
+  "length": 2.86,
+  "speech": 2.51,
+  "gainDb": 17.2,
+  "ttsLevel": -20.6,
+  "takeLevel": -37.7,
+  "takePeak": -18.8,
+  "cueIn": 51.9,
+  "cueOut": 54.86,
+  "gapToNext": 1.19,
+  "leveling": [
+   {
+    "from": 1.16,
+    "to": 2.86,
+    "gainDb": 1.6
+   }
+  ]
+ },
+ {
+  "id": "L10",
+  "onset": 55.7,
+  "when": 55.52,
+  "offset": 1.29,
+  "length": 5.79,
+  "speech": 5.45,
+  "gainDb": 17.6,
+  "ttsLevel": -20.6,
+  "takeLevel": -38.2,
+  "takePeak": -14.6,
+  "cueIn": 55.6,
+  "cueOut": 61.5,
+  "gapToNext": 2.55,
+  "leveling": [
+   {
+    "from": 5.68,
+    "to": 6.91,
+    "gainDb": 1
+   }
+  ]
+ },
+ {
+  "id": "L11",
+  "onset": 63.7,
+  "when": 63.52,
+  "offset": 0.91,
+  "length": 4.43,
+  "speech": 4.14,
+  "gainDb": 17.6,
+  "ttsLevel": -20.6,
+  "takeLevel": -38.2,
+  "takePeak": -17.5,
+  "cueIn": 63.6,
+  "cueOut": 68.19,
+  "gapToNext": 1.26,
+  "leveling": [
+   {
+    "from": 2.96,
+    "to": 5.22,
+    "gainDb": 1.3
+   }
+  ]
+ },
+ {
+  "id": "L12",
+  "onset": 69.1,
+  "when": 68.92,
+  "offset": 0.68,
+  "length": 6.38,
+  "speech": 5.8,
+  "gainDb": 17.6,
+  "ttsLevel": -20.6,
+  "takeLevel": -38.2,
+  "takePeak": -17.3,
+  "cueIn": 69,
+  "cueOut": 75.25,
+  "gapToNext": 1.8,
+  "leveling": []
+ },
+ {
+  "id": "L13",
+  "onset": 76.7,
+  "when": 76.52,
+  "offset": 0.88,
+  "length": 5.3,
+  "speech": 4.94,
+  "gainDb": 15.2,
+  "ttsLevel": -20.6,
+  "takeLevel": -35.8,
+  "takePeak": -15.5,
+  "cueIn": 76.6,
+  "cueOut": 81.99,
+  "gapToNext": 3.16,
+  "leveling": []
+ },
+ {
+  "id": "L14",
+  "onset": 84.8,
+  "when": 84.62,
+  "offset": 1.21,
+  "length": 4.85,
+  "speech": 4.4,
+  "gainDb": 17.4,
+  "ttsLevel": -20.6,
+  "takeLevel": -38,
+  "takePeak": -18.7,
+  "cueIn": 84.7,
+  "cueOut": 89.55,
+  "gapToNext": 3.6,
+  "leveling": [
+   {
+    "from": 1.39,
+    "to": 1.99,
+    "gainDb": 1.1
+   }
+  ]
+ },
+ {
+  "id": "L15",
+  "onset": 92.8,
+  "when": 92.62,
+  "offset": 1.04,
+  "length": 2.51,
+  "speech": 1.93,
+  "gainDb": 17.3,
+  "ttsLevel": -20.6,
+  "takeLevel": -37.9,
+  "takePeak": -19.1,
+  "cueIn": 92.7,
+  "cueOut": 95.08,
+  "gapToNext": 1.46,
+  "leveling": [
+   {
+    "from": 1.22,
+    "to": 1.87,
+    "gainDb": 0.8
+   }
+  ]
+ },
+ {
+  "id": "L16",
+  "onset": 96.19,
+  "when": 96.01,
+  "offset": 1.49,
+  "length": 1.58,
+  "speech": 1,
+  "gainDb": 11.7,
+  "ttsLevel": -20.6,
+  "takeLevel": -32.3,
+  "takePeak": -19.2,
+  "cueIn": 96.09,
+  "cueOut": 97.54,
+  "gapToNext": null,
+  "leveling": []
+ }
+]
